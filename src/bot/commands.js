@@ -36,7 +36,7 @@ export async function start(cfg, chatId, from, startParam = "", messageId = null
   }
 
   const name = escapeHtml(from?.first_name || "гость");
-  const text = `${BRAND}\n\n💚 <b>Добро пожаловать, ${name}.</b> 🌿\n\n╭────────────────────────╮\n│  🟢 <b>SYSTEM ONLINE</b>       │\n│  ⚡ Скорость   <b>MAX</b>        │\n│  🛡️ Защита      <b>ACTIVE</b>     │\n│  🌿 Доступ       <b>GLOBAL</b>    │\n╰────────────────────────╯\n\n🍀 <b>ТВОЙ ЛИЧНЫЙ ЦЕНТР</b> 💚\nУправляй подключением, получай\nконфигурации и бонусы — всё в одном месте. 🌱\n\n${MINI}\n\n🌿 <b>GRN VPN / PRIVATE NETWORK</b>\n<i>Технологии, которые не мешают тебе пользоваться интернетом.</i> 💚\n\n${LINE}\n🟢 <code>NODE • SECURE • 24/7</code> 🌱`;
+  const text = `${BRAND}\n\n💚 <b>Добро пожаловать, ${name}.</b> 🌿\n\n🟢 <b>SYSTEM ONLINE</b>\n⚡ Скорость   <b>MAX</b>\n🛡️ Защита    <b>ACTIVE</b>\n🌿 Доступ     <b>GLOBAL</b>\n\n🍀 <b>ТВОЙ ЛИЧНЫЙ ЦЕНТР</b> 💚\nУправляй подключением, получай\nконфигурации и бонусы — всё в одном месте. 🌱\n\n🌿 <b>GRN VPN / PRIVATE NETWORK</b>\n<i>Технологии, которые не мешают тебе пользоваться интернетом.</i> 💚\n\n🟢 <code>NODE • SECURE • 24/7</code> 🌱`;
 
   return deliver(cfg, chatId, text, mainMenu(), messageId);
 }
