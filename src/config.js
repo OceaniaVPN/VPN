@@ -4,6 +4,7 @@ export function getConfig(env) {
     githubToken: env.GITHUB_TOKEN,
     adminId: Number(env.ADMIN_ID || 0),
     botUsername: String(env.BOT_USERNAME || "").replace(/^@/, ""),
+    referralBonusDays: Math.max(1, Number(env.REFERRAL_BONUS_DAYS || 3)),
     configRepoOwner: env.CONFIG_REPO_OWNER || "OceaniaVPN",
     configRepoName: env.CONFIG_REPO_NAME || "StekloVPN",
     configsFolder: env.CONFIGS_FOLDER || "configs",
@@ -14,9 +15,6 @@ export function getConfig(env) {
     db: env.DB || null,
   };
 }
-
-export function escapeHtml(value) {
-  return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
+export function escapeHtml(value) { return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
 export function isValidChatId(value) { return /^-?\d{1,20}$/.test(String(value || "")); }
 export function isSafeConfigFilename(value) { return /^(?:user_-?\d{1,20}|decoded_-?\d{1,20}_[a-z0-9]+)\.txt$/i.test(String(value || "")); }
