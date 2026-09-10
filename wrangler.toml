@@ -1,0 +1,23 @@
+name = "oceaniavpn"
+main = "index.js"
+compatibility_date = "2026-09-01"
+
+[vars]
+CONFIG_REPO_OWNER = "OceaniaVPN"
+CONFIG_REPO_NAME = "StekloVPN"
+CONFIGS_FOLDER = "configs"
+BRANCH = "main"
+
+# Create a separate Cloudflare D1 database for this bot and add its binding here:
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "oceaniavpn-referrals"
+# database_id = "YOUR_D1_DATABASE_ID"
+
+# Secrets are configured in Cloudflare, not committed here:
+# TELEGRAM_BOT_TOKEN
+# GITHUB_TOKEN
+# ADMIN_ID
+# WORKER_ORIGIN
+# SUBSCRIPTION_SECRET
+# TELEGRAM_WEBHOOK_SECRET
