@@ -6,7 +6,7 @@ import { escapeHtml } from "../config.js";
 const SUPPORT_CARD = "2200701212779232";
 const LINE = "━━━━━━━━━━━━━━━━━━━━";
 const MINI = "────────────────────";
-const BRAND = "🌊 <b>OCEANIA VPN</b>";
+const BRAND = "🌊 <b>GRN VPN</b>";
 
 async function deliver(cfg, chatId, text, markup, messageId = null) {
   if (messageId) {
@@ -36,7 +36,7 @@ export async function start(cfg, chatId, from, startParam = "", messageId = null
   }
 
   const name = escapeHtml(from?.first_name || "гость");
-  const text = `${BRAND}\n\n<b>Добро пожаловать, ${name}.</b>\n\n╭────────────────────────╮\n│  ● <b>SYSTEM ONLINE</b>       │\n│  ⚡ Скорость   <b>MAX</b>        │\n│  🛡️ Защита      <b>ACTIVE</b>     │\n│  🌐 Доступ       <b>GLOBAL</b>    │\n╰────────────────────────╯\n\n<b>ТВОЙ ЛИЧНЫЙ ЦЕНТР</b>\nУправляй подключением, получай\nконфигурации и бонусы — всё в одном месте.\n\n${MINI}\n\n<b>ОCEANIA / PRIVATE NETWORK</b>\n<i>Технологии, которые не мешают тебе пользоваться интернетом.</i>\n\n${LINE}\n<code>NODE • SECURE • 24/7</code>`;
+  const text = `${BRAND}\n\n<b>Добро пожаловать, ${name}.</b>\n\n╭────────────────────────╮\n│  ● <b>SYSTEM ONLINE</b>       │\n│  ⚡ Скорость   <b>MAX</b>        │\n│  🛡️ Защита      <b>ACTIVE</b>     │\n│  🌐 Доступ       <b>GLOBAL</b>    │\n╰────────────────────────╯\n\n<b>ТВОЙ ЛИЧНЫЙ ЦЕНТР</b>\nУправляй подключением, получай\nконфигурации и бонусы — всё в одном месте.\n\n${MINI}\n\n<b>GRN VPN / PRIVATE NETWORK</b>\n<i>Технологии, которые не мешают тебе пользоваться интернетом.</i>\n\n${LINE}\n<code>NODE • SECURE • 24/7</code>`;
 
   return deliver(cfg, chatId, text, mainMenu(), messageId);
 }
@@ -58,11 +58,11 @@ export async function referral(cfg, chatId, messageId = null) {
 }
 
 export async function support(cfg, chatId, messageId = null) {
-  const text = `${title("💚", "SUPPORT", "Проект развивается благодаря своим людям")}\n\n╭────────────────────────╮\n│       ✦ <b>THANK YOU</b> ✦       │\n│                              │\n│  Твоя поддержка помогает    │\n│  OCEANIA становиться лучше. │\n╰────────────────────────╯\n\n💳 <b>КАРТА ДЛЯ ПОДДЕРЖКИ</b>\n<code>${SUPPORT_CARD}</code>\n\n${MINI}\n\n<i>Любая сумма — это вклад в новые\nфункции, стабильность и развитие.</i>\n\n🌊 <b>OCEANIA COMMUNITY</b>`;
+  const text = `${title("💚", "SUPPORT", "Проект развивается благодаря своим людям")}\n\n╭────────────────────────╮\n│       ✦ <b>THANK YOU</b> ✦       │\n│                              │\n│  Твоя поддержка помогает    │\n│  GRN VPN становиться лучше. │\n╰────────────────────────╯\n\n💳 <b>КАРТА ДЛЯ ПОДДЕРЖКИ</b>\n<code>${SUPPORT_CARD}</code>\n\n${MINI}\n\n<i>Любая сумма — это вклад в новые\nфункции, стабильность и развитие.</i>\n\n🌊 <b>GRN VPN COMMUNITY</b>`;
   return deliver(cfg, chatId, text, back(), messageId);
 }
 
 export async function help(cfg, chatId, messageId = null) {
-  const text = `${title("✦", "О ПРОЕКТЕ", "OCEANIA VPN / PRIVATE NETWORK")}\n\n<b>01  ПОДКЛЮЧЕНИЕ</b>\nПолучай актуальные конфигурации VPN.\n\n<b>02  BONUS CENTER</b>\nПриглашай друзей и отслеживай награды.\n\n<b>03  SUPPORT</b>\nПоддерживай развитие проекта напрямую.\n\n${LINE}\n\n╭─ <b>PHILOSOPHY</b>\n│ Private by design.\n│ Simple by default.\n│ Fast when it matters.\n╰────────────────────────\n\n<code>OCEANIA VPN • EST. 2026</code>`;
+  const text = `${title("✦", "О ПРОЕКТЕ", "GRN VPN / PRIVATE NETWORK")}\n\n<b>01  ПОДКЛЮЧЕНИЕ</b>\nПолучай актуальные конфигурации VPN.\n\n<b>02  BONUS CENTER</b>\nПриглашай друзей и отслеживай награды.\n\n<b>03  SUPPORT</b>\nПоддерживай развитие проекта напрямую.\n\n${LINE}\n\n╭─ <b>PHILOSOPHY</b>\n│ Private by design.\n│ Simple by default.\n│ Fast when it matters.\n╰────────────────────────\n\n<code>GRN VPN • EST. 2026</code>`;
   return deliver(cfg, chatId, text, back(), messageId);
 }
