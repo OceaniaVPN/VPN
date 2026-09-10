@@ -1,91 +1,89 @@
-import { sendMessage } from "../telegram.js";
-import { mainMenu, back } from "./keyboards.js";
+import { sendMessage, editMessage } from "../telegram.js";
+import { mainMenu, back, subscriptions as subscriptionsKeyboard } from "./keyboards.js";
 import { upsertUser, attachReferral, getReferralStats } from "../database/storage.js";
 import { escapeHtml } from "../config.js";
 
-const SUBSCRIPTIONS = [
-  {
-    name: "VIP",
-    icon: "👑",
-    description: "Премиум-конфигурация с максимальным комфортом.",
-    url: "https://github.com/lsncococososo-rgb/GRN_VPN/raw/refs/heads/main/Vip.txt"
-  },
-  {
-    name: "Обход БС",
-    icon: "🛡️",
-    description: "Альтернативная конфигурация для обхода ограничений.",
-    url: "https://github.com/lsncococososo-rgb/GRN_VPN/raw/refs/heads/main/%D0%9E%D0%B1%D1%85%D0%BE%D0%B4%20%D0%B1%D1%81"
-  }
-];
-
 const SUPPORT_CARD = "2200701212779232";
-
 const BRAND = "<b>OCEANIA VPN</b>";
 
 function header(icon, title, subtitle = "") {
   return `${icon} ${BRAND}\n<b>${title}</b>${subtitle ? `\n<i>${subtitle}</i>` : ""}`;
 }
 
-export async function start(cfg, chatId, from, startParam = "") {
-  await upsertUser(cfg.db, {
-    chat_id: chatId,
-    username: from?.username,
-    first_name: from?.first_name
-  });
+async function deliver(cfg, chatId, text, markup, messageId = null) {
+  if (messageId) {
+    try {
+      return await editMessage(cfg.telegramToken, chatId, messageId, text, markup);
+    } catch (error) {
+      console.error("Message edit failed, sending a new message", error);
+    }
+  }
+  return sendMessage(cfg.telegramToken, chatId, text, markup);
+}
 
-  const m = String(startParam || "").match(/^ref_(-?\d+)$/i);
-  if (m) await attachReferral(cfg.db, Number(m[1]), chatId);
+export async function start(cfg, chatId, from, startParam = "", messageId = null) {
+  if (!messageId) {
+    await upsertUser(cfg.db, {
+      chat_id: chatId,
+      username: from?.username,
+      first_name: from?.first_name
+    });
+
+    const m = String(startParam || "").match(/^ref_(-?\d+)$/i);
+    if (m) await attachReferral(cfg.db, Number(m[1]), chatId);
+  }
 
   const name = escapeHtml(from?.first_name || "друг");
-  return sendMessage(
-    cfg.telegramToken,
+  return deliver(
+    cfg,
     chatId,
-    `🌊 <b>OCEANIA VPN</b>\n\nПривет, <b>${name}</b>! 👋\n\nТвой персональный VPN-центр уже готов.\nВыбирай раздел — всё самое нужное находится в одном месте.\n\n✨ <i>Быстро. Красиво. Без лишнего.</i>`,
-    mainMenu()
+    `🌊 <b>OCEANIA VPN</b>\n\n<b>Привет, ${name}! 👋</b>\n\n╭───────────────╮\n│  🟢 <b>СЕРВИС ONLINE</b>  │\n╰───────────────╯\n\nТвой личный центр управления VPN.\nЗдесь всё собрано в одном месте — быстро, чисто и без лишнего шума.\n\n⚡ <b>Быстрый доступ</b>\n📡 Конфигурации • 🔗 Бонусы • 💚 Поддержка\n\n<i>Добро пожаловать в OCEANIA.</i>`,
+    mainMenu(),
+    messageId
   );
 }
 
-export async function subscriptions(cfg, chatId) {
-  const blocks = SUBSCRIPTIONS.map((item) =>
-    `${item.icon} <b>${item.name}</b>\n<i>${item.description}</i>\n🔗 <a href="${item.url}">Получить конфигурацию</a>`
-  ).join("\n\n━━━━━━━━━━━━━━\n\n");
-
-  return sendMessage(
-    cfg.telegramToken,
+export async function subscriptions(cfg, chatId, messageId = null) {
+  return deliver(
+    cfg,
     chatId,
-    `${header("📡", "Подписки", "Выбери подходящую конфигурацию") }\n\n${blocks}\n\n━━━━━━━━━━━━━━\n\n💡 <i>Нажми на ссылку, чтобы открыть конфигурацию.</i>`,
-    back()
+    `${header("📡", "Подписки", "Выбери конфигурацию одним нажатием")}\n\n╭─ 👑 <b>VIP</b>\n│ Премиум-конфигурация для максимального комфорта.\n╰──────────────\n\n╭─ 🛡️ <b>ОБХОД БС</b>\n│ Альтернативная конфигурация для ограниченных сетей.\n╰──────────────\n\n💡 <i>Кнопки ниже сразу откроют нужную конфигурацию.</i>`,
+    subscriptionsKeyboard(),
+    messageId
   );
 }
 
-export async function referral(cfg, chatId) {
+export async function referral(cfg, chatId, messageId = null) {
   const link = cfg.botUsername
     ? `https://t.me/${cfg.botUsername}?start=ref_${chatId}`
     : "BOT_USERNAME не настроен";
   const stats = await getReferralStats(cfg.db, chatId);
 
-  return sendMessage(
-    cfg.telegramToken,
+  return deliver(
+    cfg,
     chatId,
-    `${header("🔗", "Реферальная система", "Приглашай друзей — получай бонусы")}\n\n🎁 <b>Твоя награда</b>\nПриглашай новых пользователей и получай дополнительные дни доступа.\n\n👥 Приглашено: <b>${stats.count}</b>\n⚡ Начислено дней: <b>${stats.bonusDays}</b>\n\n🔗 <b>Твоя ссылка</b>\n<code>${escapeHtml(link)}</code>\n\n<i>Просто отправь её другу 👇</i>`,
-    back()
+    `${header("🔗", "Реферальный центр", "Приглашай друзей — получай больше")}\n\n╭───────────────╮\n│ 🎁 <b>ТВОЙ БОНУС</b>       │\n│ 👥 Приглашено: <b>${stats.count}</b>    │\n│ ⚡ Дней начислено: <b>${stats.bonusDays}</b> │\n╰───────────────╯\n\n🔗 <b>Твоя персональная ссылка</b>\n<code>${escapeHtml(link)}</code>\n\n<i>Скопируй ссылку и отправь её другу. Бонусы начислятся автоматически.</i>`,
+    back(),
+    messageId
   );
 }
 
-export async function support(cfg, chatId) {
-  return sendMessage(
-    cfg.telegramToken,
+export async function support(cfg, chatId, messageId = null) {
+  return deliver(
+    cfg,
     chatId,
-    `${header("💚", "Поддержка проекта", "Помоги OCEANIA VPN становиться лучше")}\n\n☕ Если тебе нравится проект и ты хочешь помочь его развитию — любая сумма имеет значение.\n\n💳 <b>Карта для поддержки</b>\n<code>${SUPPORT_CARD}</code>\n\n🙏 <i>Спасибо каждому, кто поддерживает проект!</i>`,
-    back()
+    `${header("💚", "Поддержка проекта", "Ты помогаешь ему становиться лучше")}\n\n╭───────────────╮\n│  ☕ <b>СПАСИБО, ЧТО ТЫ ЗДЕСЬ</b>  │\n╰───────────────╯\n\nЕсли проект оказался полезным, его можно поддержать любой суммой. Это помогает развивать OCEANIA VPN и добавлять новые возможности.\n\n💳 <b>Карта для поддержки</b>\n<code>${SUPPORT_CARD}</code>\n\n🙏 <i>Каждая поддержка — топливо для проекта.</i>`,
+    back(),
+    messageId
   );
 }
 
-export async function help(cfg, chatId) {
-  return sendMessage(
-    cfg.telegramToken,
+export async function help(cfg, chatId, messageId = null) {
+  return deliver(
+    cfg,
     chatId,
-    `${header("✨", "Помощь", "Всё просто")}\n\n/start — открыть главное меню\n\n📡 <b>Подписки</b> — доступные VPN-конфигурации\n🔗 <b>Реферальная система</b> — ссылка и статистика\n💚 <b>Поддержка проекта</b> — помочь развитию\n\n━━━━━━━━━━━━━━\n\n🌊 <i>OCEANIA VPN — твой спокойный интернет.</i>`,
-    back()
+    `${header("✨", "Центр помощи", "Коротко и понятно")}\n\n<b>📡 Подписки</b>\nПолучение доступных VPN-конфигураций.\n\n<b>🔗 Рефералы</b>\nПерсональная ссылка и статистика бонусов.\n\n<b>💚 Поддержка</b>\nПомощь проекту и его развитию.\n\n<b>🏠 Главное меню</b>\nВозврат на стартовый экран.\n\n━━━━━━━━━━━━━━\n\n🌊 <i>OCEANIA VPN — интернет без лишнего шума.</i>`,
+    back(),
+    messageId
   );
 }
