@@ -38,13 +38,13 @@ export async function start(cfg, chatId, from, startParam = "", messageId = null
   }
 
   const name = escapeHtml(from?.first_name || "гость");
-  const text = `${BRAND}\n\n💚 <b>Добро пожаловать, ${name}.</b> 🌿\n\n🟢 <b>SYSTEM ONLINE</b>\n⚡ Скорость   <b>MAX</b>\n🛡️ Защита    <b>ACTIVE</b>\n🌿 Доступ     <b>GLOBAL</b>\n\n🍀 <b>ТВОЙ ЛИЧНЫЙ ЦЕНТР</b> 💚\nУправляй подключением, получай\nконфигурации и бонусы — всё в одном месте. 🌱\n\n🌿 <b>GRN VPN / PRIVATE NETWORK</b>\n<i>Технологии, которые не мешают тебе пользоваться интернетом.</i> 💚\n\n🟢 <code>NODE • SECURE • 24/7</code> 🌱`;
+  const text = `${BRAND}\n\n💚 <b>Добро пожаловать, ${name}.</b> 🌿\n\n🌿 <b>GRN VPN / PRIVATE NETWORK</b>\n<i>Технологии, которые не мешают тебе пользоваться интернетом.</i> 💚`;
 
   return deliver(cfg, chatId, text, mainMenu(), messageId);
 }
 
 export async function subscriptions(cfg, chatId, messageId = null) {
-  const text = `${title("🌿", "ПОДКЛЮЧЕНИЕ", "Выбери режим доступа 💚")}\n\n╭─ 🟢 <b>VIP / PREMIUM</b> 👑\n│ Максимум комфорта и скорости. ⚡\n│ <i>Основная конфигурация проекта</i>\n╰────────────────────────\n\n╭─ 🌱 <b>ОБХОД БС</b> 🛡️\n│ Альтернативный режим подключения.\n│ <i>Для сетей с ограничениями</i>\n╰────────────────────────\n\n💚 <b>Нажатие сразу откроет конфигурацию.</b>\n🟢 <code>ENCRYPTED • PRIVATE • READY</code>`;
+  const text = `${title("🌿", "ПОДКЛЮЧЕНИЕ", "Выбери режим доступа 💚")}\n\n╭─ 🟢 <b>VIP / PREMIUM</b> 👑\n│ Максимум комфорта и скорости. ⚡\n│ <i>Основная конфигурация проекта</i>\n╰────────────────────────\n\n╭─ 🌱 <b>ОБХОД БС</b> 🛡️\n│ Альтернативный режим подключения.\n│ <i>Обход белых списков</i>\n╰────────────────────────\n\n💚 <b>Скопируйте конфигурацию и вставьте в конфигуратор:</b>\n<code>Happ, Incy, v2RayTun</code>\n\n🟢 <code>ENCRYPTED • PRIVATE • READY</code>`;
   return deliver(cfg, chatId, text, subscriptionsKeyboard(), messageId);
 }
 
@@ -60,7 +60,7 @@ export async function referral(cfg, chatId, messageId = null) {
 }
 
 export async function support(cfg, chatId, messageId = null) {
-  const text = `${title("💚", "SUPPORT", "Проект развивается благодаря своим людям 🌿")}\n\n╭────────────────────────╮\n│       🌱 <b>THANK YOU</b> 🌱       │\n│                              │\n│  💚 Твоя поддержка помогает   │\n│  GRN VPN становиться лучше.  │\n╰────────────────────────╯\n\n💳 <b>КАРТА ДЛЯ ПОДДЕРЖКИ</b>\n<code>${SUPPORT_CARD}</code>\n\n${MINI}\n\n<i>Любая сумма — это вклад в новые\nфункции, стабильность и развитие.</i> 🌿\n\n🍀 <b>GRN VPN COMMUNITY</b> 🟢`;
+  const text = `${title("💚", "SUPPORT", "Проект развивается благодаря своим людям 🌿")}\n\n💳 <b>КАРТА ДЛЯ ПОДДЕРЖКИ</b>\n<code>${SUPPORT_CARD}</code>\n\n${MINI}\n\n<i>Любая сумма — это вклад в новые\nфункции, стабильность и развитие.</i> 🌿\n\n🍀 <b>GRN VPN COMMUNITY</b> 🟢`;
   return deliver(cfg, chatId, text, back(), messageId);
 }
 
@@ -76,14 +76,19 @@ export async function jsonGenerator(cfg, chatId, input) {
 
   try {
     const json = generateJsonSubscription(input);
+    const parsed = JSON.parse(json);
+    const serverCount = Array.isArray(parsed?.outbounds)
+      ? parsed.outbounds.filter(out => !["direct", "block"].includes(out?.tag)).length
+      : 0;
+
     await sendDocument(
       cfg.telegramToken,
       chatId,
       json,
       `grn-vpn-${Date.now()}.json`,
-      "🌿 <b>GRN VPN JSON</b>\nБалансировщик БС и БС-серверы удалены."
+      `🌿 <b>GRN VPN JSON</b>\nАвтобалансировщик: <b>1</b>\nОбычных серверов: <b>${serverCount}</b>\nБС-серверы и БС-балансировщики исключены.`
     );
-    return sendMessage(cfg.telegramToken, chatId, `💚 <b>Готово.</b> Сгенерировано конфигураций: <b>${JSON.parse(json).length}</b>.`);
+    return sendMessage(cfg.telegramToken, chatId, `💚 <b>Готово.</b> Все ключи собраны в один автобалансировщик <code>auto</code>.`);
   } catch (error) {
     return sendMessage(cfg.telegramToken, chatId, `❌ <b>Не удалось создать JSON.</b>\n\n${escapeHtml(error.message || "Неизвестная ошибка")}`);
   }
