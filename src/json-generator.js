@@ -9,11 +9,27 @@ function splitInput(text) {
     .filter(Boolean);
 }
 
-function isBsOutbound(out) {
-  if (!out || typeof out !== "object") return true;
-  const tag = String(out.tag || "").toLowerCase();
-  const remarks = String(out.remarks || "").toLowerCase();
-  return tag.startsWith("proxy-bs-") || tag.includes("bs") || remarks.includes("бс") || remarks.includes("белые списки");
+function decodeFragment(value) {
+  const raw = String(value || "").replace(/^#/, "");
+  if (!raw) return "";
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+}
+
+function humanName(value, fallback) {
+  const name = String(value || "").trim();
+  return name || fallback;
+}
+
+function makeTag(name, index) {
+  const cleaned = humanName(name, `Server ${String(index + 1).padStart(2, "0")}`)
+    .replace(/[\r\n]+/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  return `proxy-${cleaned}`;
 }
 
 function extractJsonOutbounds(config) {
@@ -21,8 +37,7 @@ function extractJsonOutbounds(config) {
   const outbounds = Array.isArray(config.outbounds) ? config.outbounds : [];
   return outbounds.filter(out => {
     const protocol = String(out?.protocol || "").toLowerCase();
-    if (["freedom", "blackhole", "dns", "loopback"].includes(protocol)) return false;
-    return !isBsOutbound(out);
+    return !["freedom", "blackhole", "dns", "loopback"].includes(protocol);
   });
 }
 
@@ -34,8 +49,11 @@ function parseVless(uri, index) {
   const p = url.searchParams;
   const network = p.get("type") || p.get("network") || "tcp";
   const security = p.get("security") || "none";
-  const name = (p.get("remarks") || p.get("name") || url.hash.replace(/^#/, "") || `proxy-${index + 1}`).trim();
-  const tag = `proxy-${index + 1}`;
+  const name = humanName(
+    p.get("remarks") || p.get("name") || decodeFragment(url.hash),
+    `Server ${String(index + 1).padStart(2, "0")}`
+  );
+  const tag = makeTag(name, index);
 
   const user = { id, encryption: "none" };
   const flow = p.get("flow");
@@ -49,6 +67,7 @@ function parseVless(uri, index) {
     remarks: name
   };
 
+  const alpn = p.get("alpn");
   if (security === "reality") {
     outbound.streamSettings.realitySettings = {
       serverName: p.get("sni") || p.get("serverName") || "",
@@ -57,12 +76,14 @@ function parseVless(uri, index) {
     };
     const sid = p.get("sid") || p.get("shortId");
     if (sid) outbound.streamSettings.realitySettings.shortId = sid;
+    if (alpn) outbound.streamSettings.realitySettings.alpn = alpn.split(",").map(s => s.trim()).filter(Boolean);
   } else if (security === "tls") {
     outbound.streamSettings.tlsSettings = {
       serverName: p.get("sni") || p.get("serverName") || ""
     };
     const fp = p.get("fp") || p.get("fingerprint");
     if (fp) outbound.streamSettings.tlsSettings.fingerprint = fp;
+    if (alpn) outbound.streamSettings.tlsSettings.alpn = alpn.split(",").map(s => s.trim()).filter(Boolean);
   }
 
   if (network === "grpc") {
@@ -82,6 +103,8 @@ function parseVless(uri, index) {
       mode: p.get("mode") || "auto",
       path: p.get("path") || "/"
     };
+    const host = p.get("host");
+    if (host) outbound.streamSettings.xhttpSettings.host = host;
   }
 
   return outbound;
@@ -89,14 +112,20 @@ function parseVless(uri, index) {
 
 function normalizeJsonOutbound(out, index) {
   const copy = JSON.parse(JSON.stringify(out));
-  copy.tag = `proxy-${index + 1}`;
-  delete copy.remarks;
+  const name = humanName(copy.remarks || copy.name || copy.tag, `Server ${String(index + 1).padStart(2, "0")}`);
+  copy.tag = makeTag(name, index);
+  copy.remarks = name;
+  delete copy.name;
   return copy;
 }
 
 function buildSubscription(outbounds) {
   const proxyOutbounds = outbounds.map((out, index) => normalizeJsonOutbound(out, index));
   const tags = proxyOutbounds.map(out => out.tag);
+  const manualServers = proxyOutbounds.map(out => ({
+    tag: out.tag,
+    name: out.remarks
+  }));
 
   return {
     dns: {
@@ -150,9 +179,10 @@ function buildSubscription(outbounds) {
     ],
     remarks: "GRN VPN Auto",
     meta: {
-      description: "GRN VPN JSON subscription with one auto balancer",
+      description: "GRN VPN: one auto balancer followed by manually selectable named servers",
       balancer: "auto",
-      servers: tags.length
+      manualSelection: true,
+      manualServers
     }
   };
 }
@@ -183,8 +213,7 @@ export function generateJsonSubscription(input) {
     }
   }
 
-  const clean = outbounds.filter(out => !isBsOutbound(out));
-  if (!clean.length) throw new Error("Не найдено ни одного обычного ключа после удаления БС");
+  if (!outbounds.length) throw new Error("Не найдено ни одного поддерживаемого ключа");
 
-  return JSON.stringify(buildSubscription(clean), null, 2);
+  return JSON.stringify(buildSubscription(outbounds), null, 2);
 }
