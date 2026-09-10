@@ -2,14 +2,13 @@ export const mainMenu = () => ({
   inline_keyboard: [
     [{ text: "🌿  G R N   V P N  💚", callback_data: "menu" }],
     [
-      { text: "🟢 ⚡ ПОДКЛЮЧЕНИЕ", callback_data: "subs" },
-      { text: "🍀 🎁 БОНУСЫ", callback_data: "ref" }
+      { text: "⚡ ПОДКЛЮЧЕНИЕ", callback_data: "subs" },
+      { text: "🎁 БОНУСЫ", callback_data: "ref" }
     ],
     [
-      { text: "💚 🌱 ПОДДЕРЖАТЬ", callback_data: "support" },
-      { text: "🌿 ✦ О ПРОЕКТЕ", callback_data: "help" }
-    ],
-    [{ text: "━━━━━━━━  🌿 GRN VPN 💚  ━━━━━━━━", callback_data: "menu" }]
+      { text: "🌱 ПОДДЕРЖАТЬ", callback_data: "support" },
+      { text: "✦ О ПРОЕКТЕ", callback_data: "help" }
+    ]
   ]
 });
 
