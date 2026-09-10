@@ -33,7 +33,7 @@ export async function handleUpdate(cfg, update) {
     if (cmd === "help") return help(cfg, chatId);
     if (cmd === "json" || cmd === "jsongen") {
       if (!arg) {
-        return sendMessage(cfg.telegramToken, chatId, "🌿 <b>JSON GENERATOR</b>\n\nОтправь ключи одной командой:\n<code>/json vless://...</code>\n\nМожно передать несколько VLESS-ключей — по одному на строку. Также принимаются JSON-конфиги.\n\nБС-балансировщик и БС-серверы автоматически исключаются.");
+        return sendMessage(cfg.telegramToken, chatId, "🌿 <b>JSON GENERATOR</b>\n\nОтправь ключи одной командой:\n<code>/json vless://...</code>\n\nМожно передать несколько VLESS-ключей — по одному на строку. Также принимаются JSON-конфиги.\n\nГенератор соберёт все обычные ключи в <b>один автобалансировщик auto</b> и исключит БС-серверы и БС-балансировщики.");
       }
       return jsonGenerator(cfg, chatId, arg);
     }
