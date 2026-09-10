@@ -4,11 +4,9 @@ import { upsertUser, attachReferral, getReferralStats } from "../database/storag
 import { escapeHtml } from "../config.js";
 
 const SUPPORT_CARD = "2200701212779232";
-const BRAND = "<b>OCEANIA VPN</b>";
-
-function header(icon, title, subtitle = "") {
-  return `${icon} ${BRAND}\n<b>${title}</b>${subtitle ? `\n<i>${subtitle}</i>` : ""}`;
-}
+const LINE = "━━━━━━━━━━━━━━━━━━━━";
+const MINI = "────────────────────";
+const BRAND = "🌊 <b>OCEANIA VPN</b>";
 
 async function deliver(cfg, chatId, text, markup, messageId = null) {
   if (messageId) {
@@ -19,6 +17,10 @@ async function deliver(cfg, chatId, text, markup, messageId = null) {
     }
   }
   return sendMessage(cfg.telegramToken, chatId, text, markup);
+}
+
+function title(icon, name, subtitle) {
+  return `${BRAND}\n${LINE}\n${icon} <b>${name}</b>\n<i>${subtitle}</i>`;
 }
 
 export async function start(cfg, chatId, from, startParam = "", messageId = null) {
@@ -33,24 +35,15 @@ export async function start(cfg, chatId, from, startParam = "", messageId = null
     if (m) await attachReferral(cfg.db, Number(m[1]), chatId);
   }
 
-  const name = escapeHtml(from?.first_name || "друг");
-  return deliver(
-    cfg,
-    chatId,
-    `🌊 <b>OCEANIA VPN</b>\n\n<b>Привет, ${name}! 👋</b>\n\n╭───────────────╮\n│  🟢 <b>СЕРВИС ONLINE</b>  │\n╰───────────────╯\n\nТвой личный центр управления VPN.\nЗдесь всё собрано в одном месте — быстро, чисто и без лишнего шума.\n\n⚡ <b>Быстрый доступ</b>\n📡 Конфигурации • 🔗 Бонусы • 💚 Поддержка\n\n<i>Добро пожаловать в OCEANIA.</i>`,
-    mainMenu(),
-    messageId
-  );
+  const name = escapeHtml(from?.first_name || "гость");
+  const text = `${BRAND}\n\n<b>Добро пожаловать, ${name}.</b>\n\n╭────────────────────────╮\n│  ● <b>SYSTEM ONLINE</b>       │\n│  ⚡ Скорость   <b>MAX</b>        │\n│  🛡️ Защита      <b>ACTIVE</b>     │\n│  🌐 Доступ       <b>GLOBAL</b>    │\n╰────────────────────────╯\n\n<b>ТВОЙ ЛИЧНЫЙ ЦЕНТР</b>\nУправляй подключением, получай\nконфигурации и бонусы — всё в одном месте.\n\n${MINI}\n\n<b>ОCEANIA / PRIVATE NETWORK</b>\n<i>Технологии, которые не мешают тебе пользоваться интернетом.</i>\n\n${LINE}\n<code>NODE • SECURE • 24/7</code>`;
+
+  return deliver(cfg, chatId, text, mainMenu(), messageId);
 }
 
 export async function subscriptions(cfg, chatId, messageId = null) {
-  return deliver(
-    cfg,
-    chatId,
-    `${header("📡", "Подписки", "Выбери конфигурацию одним нажатием")}\n\n╭─ 👑 <b>VIP</b>\n│ Премиум-конфигурация для максимального комфорта.\n╰──────────────\n\n╭─ 🛡️ <b>ОБХОД БС</b>\n│ Альтернативная конфигурация для ограниченных сетей.\n╰──────────────\n\n💡 <i>Кнопки ниже сразу откроют нужную конфигурацию.</i>`,
-    subscriptionsKeyboard(),
-    messageId
-  );
+  const text = `${title("⚡", "ПОДКЛЮЧЕНИЕ", "Выбери режим доступа")}\n\n╭─ 👑 <b>VIP / PREMIUM</b>\n│ Максимум комфорта и скорости.\n│ <i>Основная конфигурация проекта</i>\n╰────────────────────────\n\n╭─ 🛡️ <b>ОБХОД БС</b>\n│ Альтернативный режим подключения.\n│ <i>Для сетей с ограничениями</i>\n╰────────────────────────\n\n<b>Нажатие сразу откроет конфигурацию.</b>\n<code>ENCRYPTED • PRIVATE • READY</code>`;
+  return deliver(cfg, chatId, text, subscriptionsKeyboard(), messageId);
 }
 
 export async function referral(cfg, chatId, messageId = null) {
@@ -59,31 +52,17 @@ export async function referral(cfg, chatId, messageId = null) {
     : "BOT_USERNAME не настроен";
   const stats = await getReferralStats(cfg.db, chatId);
 
-  return deliver(
-    cfg,
-    chatId,
-    `${header("🔗", "Реферальный центр", "Приглашай друзей — получай больше")}\n\n╭───────────────╮\n│ 🎁 <b>ТВОЙ БОНУС</b>       │\n│ 👥 Приглашено: <b>${stats.count}</b>    │\n│ ⚡ Дней начислено: <b>${stats.bonusDays}</b> │\n╰───────────────╯\n\n🔗 <b>Твоя персональная ссылка</b>\n<code>${escapeHtml(link)}</code>\n\n<i>Скопируй ссылку и отправь её другу. Бонусы начислятся автоматически.</i>`,
-    back(),
-    messageId
-  );
+  const text = `${title("🎁", "BONUS CENTER", "Приглашай друзей — открывай больше возможностей")}\n\n╭────────────────────────╮\n│  👥 <b>ДРУЗЬЯ</b>           ${stats.count}\n│  ⚡ <b>БОНУСНЫЕ ДНИ</b>     ${stats.bonusDays}\n│  ✦ <b>СТАТУС</b>            ACTIVE\n╰────────────────────────╯\n\n🔗 <b>ТВОЯ ПЕРСОНАЛЬНАЯ ССЫЛКА</b>\n<code>${escapeHtml(link)}</code>\n\n${MINI}\n\n<i>Отправь ссылку другу. Система сама\nотследит приглашение и начислит бонус.</i>\n\n<code>INVITE • EARN • REPEAT</code>`;
+
+  return deliver(cfg, chatId, text, back(), messageId);
 }
 
 export async function support(cfg, chatId, messageId = null) {
-  return deliver(
-    cfg,
-    chatId,
-    `${header("💚", "Поддержка проекта", "Ты помогаешь ему становиться лучше")}\n\n╭───────────────╮\n│  ☕ <b>СПАСИБО, ЧТО ТЫ ЗДЕСЬ</b>  │\n╰───────────────╯\n\nЕсли проект оказался полезным, его можно поддержать любой суммой. Это помогает развивать OCEANIA VPN и добавлять новые возможности.\n\n💳 <b>Карта для поддержки</b>\n<code>${SUPPORT_CARD}</code>\n\n🙏 <i>Каждая поддержка — топливо для проекта.</i>`,
-    back(),
-    messageId
-  );
+  const text = `${title("💚", "SUPPORT", "Проект развивается благодаря своим людям")}\n\n╭────────────────────────╮\n│       ✦ <b>THANK YOU</b> ✦       │\n│                              │\n│  Твоя поддержка помогает    │\n│  OCEANIA становиться лучше. │\n╰────────────────────────╯\n\n💳 <b>КАРТА ДЛЯ ПОДДЕРЖКИ</b>\n<code>${SUPPORT_CARD}</code>\n\n${MINI}\n\n<i>Любая сумма — это вклад в новые\nфункции, стабильность и развитие.</i>\n\n🌊 <b>OCEANIA COMMUNITY</b>`;
+  return deliver(cfg, chatId, text, back(), messageId);
 }
 
 export async function help(cfg, chatId, messageId = null) {
-  return deliver(
-    cfg,
-    chatId,
-    `${header("✨", "Центр помощи", "Коротко и понятно")}\n\n<b>📡 Подписки</b>\nПолучение доступных VPN-конфигураций.\n\n<b>🔗 Рефералы</b>\nПерсональная ссылка и статистика бонусов.\n\n<b>💚 Поддержка</b>\nПомощь проекту и его развитию.\n\n<b>🏠 Главное меню</b>\nВозврат на стартовый экран.\n\n━━━━━━━━━━━━━━\n\n🌊 <i>OCEANIA VPN — интернет без лишнего шума.</i>`,
-    back(),
-    messageId
-  );
+  const text = `${title("✦", "О ПРОЕКТЕ", "OCEANIA VPN / PRIVATE NETWORK")}\n\n<b>01  ПОДКЛЮЧЕНИЕ</b>\nПолучай актуальные конфигурации VPN.\n\n<b>02  BONUS CENTER</b>\nПриглашай друзей и отслеживай награды.\n\n<b>03  SUPPORT</b>\nПоддерживай развитие проекта напрямую.\n\n${LINE}\n\n╭─ <b>PHILOSOPHY</b>\n│ Private by design.\n│ Simple by default.\n│ Fast when it matters.\n╰────────────────────────\n\n<code>OCEANIA VPN • EST. 2026</code>`;
+  return deliver(cfg, chatId, text, back(), messageId);
 }
