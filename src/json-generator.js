@@ -132,6 +132,12 @@ function buildSubscription(outbounds) {
       servers: ["1.1.1.1", "8.8.8.8", "77.88.8.8"],
       queryStrategy: "UseIP"
     },
+    observatory: {
+      subjectSelector: ["proxy-"],
+      probeUrl: "https://www.google.com/generate_204",
+      probeInterval: "30s",
+      enableConcurrency: true
+    },
     routing: {
       domainStrategy: "IPIfNonMatch",
       rules: [
