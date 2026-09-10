@@ -1,4 +1,4 @@
-import { start, subscriptions, referral, support, help } from "./commands.js";
+import { start, subscriptions, referral, support, help, jsonGenerator } from "./commands.js";
 import { mainMenu } from "./keyboards.js";
 import { sendMessage, answerCallback } from "../telegram.js";
 
@@ -23,7 +23,7 @@ export async function handleUpdate(cfg, update) {
   if (!msg?.chat?.id) return;
   const chatId = msg.chat.id;
   const text = String(msg.text || "").trim();
-  const match = text.match(/^\/(\w+)(?:@\w+)?(?:\s+(.+))?$/);
+  const match = text.match(/^\/(\w+)(?:@\w+)?(?:\s+([\s\S]+))?$/);
 
   if (match) {
     const [, cmd, arg] = match;
@@ -31,6 +31,12 @@ export async function handleUpdate(cfg, update) {
     if (cmd === "ref") return referral(cfg, chatId);
     if (cmd === "support") return support(cfg, chatId);
     if (cmd === "help") return help(cfg, chatId);
+    if (cmd === "json" || cmd === "jsongen") {
+      if (!arg) {
+        return sendMessage(cfg.telegramToken, chatId, "🌿 <b>JSON GENERATOR</b>\n\nОтправь ключи одной командой:\n<code>/json vless://...</code>\n\nМожно передать несколько VLESS-ключей — по одному на строку. Также принимаются JSON-конфиги.\n\nБС-балансировщик и БС-серверы автоматически исключаются.");
+      }
+      return jsonGenerator(cfg, chatId, arg);
+    }
   }
 
   return sendMessage(cfg.telegramToken, chatId, "🌊 <b>OCEANIA VPN</b>\n\nВыбери раздел в меню ниже 👇", mainMenu());
