@@ -50,6 +50,30 @@ export async function editMessage(token, chatId, messageId, text, replyMarkup = 
   });
 }
 
+export async function sendDocument(token, chatId, content, filename = "subscription.json", caption = "") {
+  if (!token) throw new Error("Telegram bot token is not configured");
+  const form = new FormData();
+  form.append("chat_id", String(chatId));
+  form.append("document", new Blob([content], { type: "application/json" }), filename);
+  if (caption) form.append("caption", caption);
+
+  const res = await fetch(`https://api.telegram.org/bot${token}/sendDocument`, {
+    method: "POST",
+    body: form
+  });
+
+  let data;
+  try {
+    data = await res.json();
+  } catch {
+    throw new Error(`Telegram returned invalid JSON (HTTP ${res.status})`);
+  }
+  if (!res.ok || data?.ok === false) {
+    throw new Error(data?.description || `Telegram HTTP ${res.status}`);
+  }
+  return data;
+}
+
 export async function answerCallback(token, callbackId) {
   return request(token, "answerCallbackQuery", { callback_query_id: callbackId });
 }
