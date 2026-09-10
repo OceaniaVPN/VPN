@@ -44,8 +44,8 @@ export async function start(cfg, chatId, from, startParam = "", messageId = null
 }
 
 export async function subscriptions(cfg, chatId, messageId = null) {
-  const text = `${title("🌿", "ПОДКЛЮЧЕНИЕ", "Выбери режим доступа 💚")}\n\n╭─ 🟢 <b>VIP / PREMIUM</b> 👑\n│ Максимум комфорта и скорости. ⚡\n│ <i>Основная конфигурация проекта</i>\n╰────────────────────────\n\n╭─ 🌱 <b>ОБХОД БС</b> 🛡️\n│ Альтернативный режим подключения.\n│ <i>Обход белых списков</i>\n╰────────────────────────\n\n💚 <b>Скопируйте конфигурацию и вставьте в конфигуратор:</b>\n<code>Happ, Incy, v2RayTun</code>\n\n🟢 <code>ENCRYPTED • PRIVATE • READY</code>`;
-  return deliver(cfg, chatId, text, subscriptionsKeyboard(), messageId);
+  const text = `${title("🌿", "ПОДКЛЮЧЕНИЕ", "Выбери режим доступа 💚")}\n\n╭─ 🟢 <b>VIP / PREMIUM</b> 👑\n│ Максимум комфорта и скорости. ⚡\n│ <i>Основная конфигурация проекта</i>\n╰────────────────────────\n\n╭─ 🌱 <b>ОБХОД БС</b> 🛡️\n│ Альтернативный режим подключения.\n│ <i>Обход белых списков</i>\n╰────────────────────────\n\n💚 <b>Кнопка откроет страницу подключения на GRN VPN.</b>\n<i>На странице можно сразу добавить подписку в Happ, Incy или v2RayTun по их официальным deep-link форматам.</i>\n\n🟢 <code>ENCRYPTED • PRIVATE • READY</code>`;
+  return deliver(cfg, chatId, text, subscriptionsKeyboard(cfg.workerOrigin), messageId);
 }
 
 export async function referral(cfg, chatId, messageId = null) {
@@ -86,9 +86,9 @@ export async function jsonGenerator(cfg, chatId, input) {
       chatId,
       json,
       `grn-vpn-${Date.now()}.json`,
-      `🌿 <b>GRN VPN JSON</b>\nАвтобалансировщик: <b>1</b>\nОбычных серверов: <b>${serverCount}</b>\nБС-серверы и БС-балансировщики исключены.`
+      `🌿 <b>GRN VPN JSON</b>\nАвтобалансировщик: <b>1</b>\nСерверов для ручного выбора: <b>${serverCount}</b>\nВсе серверы сохранены с человеческими названиями из remark VLESS.`
     );
-    return sendMessage(cfg.telegramToken, chatId, `💚 <b>Готово.</b> Все ключи собраны в один автобалансировщик <code>auto</code>.`);
+    return sendMessage(cfg.telegramToken, chatId, `💚 <b>Готово.</b> Один автобалансировщик <code>auto</code> + серверы для ручного выбора с названиями из ключей.`);
   } catch (error) {
     return sendMessage(cfg.telegramToken, chatId, `❌ <b>Не удалось создать JSON.</b>\n\n${escapeHtml(error.message || "Неизвестная ошибка")}`);
   }
