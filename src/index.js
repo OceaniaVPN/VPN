@@ -25,43 +25,283 @@ function pageHtml(origin, plan) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#071f16">
+  <meta name="theme-color" content="#071b14">
   <title>${selected.title} • GRN VPN</title>
   <style>
-    :root { color-scheme: dark; font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    :root {
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
     * { box-sizing: border-box; }
-    body { margin:0; min-height:100vh; background:radial-gradient(circle at top,#124a34 0,#071f16 45%,#03100b 100%); color:#fff; display:flex; justify-content:center; padding:24px 16px 40px; }
-    .wrap { width:min(620px,100%); }
-    .glass { background:rgba(255,255,255,.075); border:1px solid rgba(255,255,255,.13); box-shadow:0 20px 60px rgba(0,0,0,.35); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); border-radius:28px; padding:24px; }
-    .brand { color:#b8ffcf; font-weight:800; letter-spacing:.12em; font-size:13px; }
-    h1 { margin:10px 0 8px; font-size:30px; line-height:1.08; }
-    .sub { color:#d7eee0; opacity:.88; line-height:1.55; }
-    .grid { display:grid; gap:12px; margin-top:22px; }
-    a.btn { display:block; text-decoration:none; color:#07140d; background:#b8ffcf; border-radius:18px; padding:16px 18px; font-weight:800; transition:transform .15s ease, filter .15s ease; }
-    a.btn:hover { transform:translateY(-1px); filter:brightness(1.04); }
-    a.btn.alt { color:#fff; background:rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.14); }
-    .name { display:block; font-size:17px; }
-    .hint { display:block; font-size:12px; font-weight:500; opacity:.72; margin-top:4px; }
-    .copy { margin-top:18px; padding:14px; border-radius:16px; background:rgba(0,0,0,.22); overflow:auto; font-size:12px; color:#d9ffe5; word-break:break-all; }
-    .back { margin-top:14px; display:block; text-align:center; color:#b8ffcf; text-decoration:none; font-size:14px; }
-    .note { margin-top:18px; font-size:12px; line-height:1.5; color:#b9d5c3; }
+
+    html { min-height: 100%; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow-x: hidden;
+      padding: max(22px, env(safe-area-inset-top)) 16px max(30px, env(safe-area-inset-bottom));
+      background:
+        radial-gradient(circle at 12% 12%, rgba(78, 255, 164, .26), transparent 31%),
+        radial-gradient(circle at 88% 18%, rgba(40, 182, 255, .20), transparent 28%),
+        radial-gradient(circle at 50% 92%, rgba(119, 77, 255, .22), transparent 34%),
+        linear-gradient(135deg, #03110c 0%, #083b2a 45%, #061d32 100%);
+      background-size: 150% 150%;
+      animation: gradientMove 14s ease-in-out infinite alternate;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      width: 280px;
+      height: 280px;
+      border-radius: 50%;
+      filter: blur(70px);
+      opacity: .22;
+      pointer-events: none;
+    }
+
+    body::before {
+      top: -120px;
+      left: -80px;
+      background: #43ffae;
+    }
+
+    body::after {
+      right: -100px;
+      bottom: -130px;
+      background: #6e67ff;
+    }
+
+    @keyframes gradientMove {
+      0% { background-position: 0% 20%; }
+      100% { background-position: 100% 80%; }
+    }
+
+    .wrap {
+      position: relative;
+      width: min(520px, 100%);
+      z-index: 1;
+    }
+
+    .glass {
+      position: relative;
+      overflow: hidden;
+      padding: 28px;
+      border: 1px solid rgba(255,255,255,.16);
+      border-radius: 32px;
+      background: linear-gradient(145deg, rgba(255,255,255,.13), rgba(255,255,255,.045));
+      box-shadow:
+        0 30px 90px rgba(0,0,0,.42),
+        inset 0 1px 0 rgba(255,255,255,.12);
+      backdrop-filter: blur(24px) saturate(130%);
+      -webkit-backdrop-filter: blur(24px) saturate(130%);
+    }
+
+    .glass::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, rgba(255,255,255,.12), transparent 30%, transparent 70%, rgba(120,255,190,.06));
+      pointer-events: none;
+    }
+
+    .content { position: relative; }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #baffd6;
+      font-size: 12px;
+      font-weight: 850;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+    }
+
+    .brand-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #9dffc4;
+      box-shadow: 0 0 18px rgba(120,255,181,.9);
+    }
+
+    h1 {
+      margin: 14px 0 7px;
+      font-size: clamp(31px, 8vw, 43px);
+      line-height: .98;
+      letter-spacing: -.045em;
+    }
+
+    .sub {
+      margin: 0;
+      color: rgba(235,255,243,.78);
+      font-size: 15px;
+      line-height: 1.55;
+    }
+
+    .plan {
+      display: inline-flex;
+      margin-top: 18px;
+      padding: 8px 12px;
+      border: 1px solid rgba(184,255,207,.18);
+      border-radius: 999px;
+      color: #d7ffe4;
+      background: rgba(115,255,174,.08);
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .grid {
+      display: grid;
+      gap: 11px;
+      margin-top: 24px;
+    }
+
+    a.btn {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-height: 68px;
+      padding: 13px 16px;
+      color: #fff;
+      text-decoration: none;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 20px;
+      background: rgba(255,255,255,.075);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+      transition: transform .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    a.btn:hover {
+      transform: translateY(-2px);
+      background: rgba(255,255,255,.12);
+      border-color: rgba(190,255,214,.25);
+      box-shadow: 0 12px 28px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.08);
+    }
+
+    a.btn:active { transform: translateY(0) scale(.985); }
+
+    .icon {
+      display: grid;
+      place-items: center;
+      flex: 0 0 42px;
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      background: rgba(184,255,207,.11);
+      border: 1px solid rgba(184,255,207,.12);
+      font-size: 21px;
+    }
+
+    .text { min-width: 0; flex: 1; }
+
+    .name {
+      display: block;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: -.01em;
+    }
+
+    .arrow {
+      color: rgba(220,255,232,.55);
+      font-size: 21px;
+      transition: transform .18s ease, color .18s ease;
+    }
+
+    a.btn:hover .arrow {
+      color: #c3ffda;
+      transform: translateX(3px);
+    }
+
+    a.btn.primary {
+      color: #062014;
+      border-color: rgba(220,255,232,.5);
+      background: linear-gradient(135deg, #baffd1, #76f6ae);
+      box-shadow: 0 12px 32px rgba(55,255,157,.18), inset 0 1px 0 rgba(255,255,255,.45);
+    }
+
+    a.btn.primary .icon {
+      background: rgba(0,70,37,.10);
+      border-color: rgba(0,70,37,.10);
+    }
+
+    a.btn.primary .arrow { color: rgba(4,45,27,.65); }
+
+    .back {
+      display: block;
+      margin-top: 18px;
+      padding: 9px;
+      color: rgba(205,255,220,.72);
+      text-align: center;
+      text-decoration: none;
+      font-size: 13px;
+      transition: color .18s ease;
+    }
+
+    .back:hover { color: #fff; }
+
+    .footer {
+      margin-top: 17px;
+      color: rgba(210,238,220,.42);
+      text-align: center;
+      font-size: 11px;
+      letter-spacing: .02em;
+    }
+
+    @media (max-width: 480px) {
+      body { align-items: flex-start; padding-top: max(14px, env(safe-area-inset-top)); }
+      .glass { padding: 23px 18px 19px; border-radius: 27px; }
+      h1 { margin-top: 12px; }
+      .grid { margin-top: 20px; }
+      a.btn { min-height: 64px; border-radius: 18px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      body { animation: none; }
+      a.btn, .arrow { transition: none; }
+    }
   </style>
 </head>
 <body>
   <main class="wrap">
     <section class="glass">
-      <div class="brand">🌿 GRN VPN</div>
-      <h1>Подключение</h1>
-      <div class="sub">${selected.title}. Выберите приложение — Worker передаст ему deep-link ссылку на подписку.</div>
-      <div class="grid">
-        <a class="btn" href="${happ}"><span class="name">💚 Открыть в Happ</span><span class="hint">Импорт подписки через deep link</span></a>
-        <a class="btn" href="${incy}"><span class="name">🌱 Открыть в Incy</span><span class="hint">Импорт подписки через deep link</span></a>
-        <a class="btn" href="${v2raytun}"><span class="name">🟢 Открыть в v2RayTun</span><span class="hint">Импорт подписки через deep link</span></a>
-        <a class="btn alt" href="${subUrl}"><span class="name">🔗 Открыть ссылку подписки</span><span class="hint">Если deep link не перехватился приложением</span></a>
+      <div class="content">
+        <div class="brand"><span class="brand-dot"></span> GRN VPN</div>
+        <h1>Подключение</h1>
+        <p class="sub">Выберите приложение, в котором хотите использовать подписку.</p>
+        <div class="plan">${selected.title}</div>
+
+        <div class="grid">
+          <a class="btn primary" href="${happ}">
+            <span class="icon">💚</span>
+            <span class="text"><span class="name">Happ</span></span>
+            <span class="arrow">›</span>
+          </a>
+          <a class="btn" href="${incy}">
+            <span class="icon">🌱</span>
+            <span class="text"><span class="name">Incy</span></span>
+            <span class="arrow">›</span>
+          </a>
+          <a class="btn" href="${v2raytun}">
+            <span class="icon">🟢</span>
+            <span class="text"><span class="name">v2RayTun</span></span>
+            <span class="arrow">›</span>
+          </a>
+        </div>
+
+        <a class="back" href="${origin}/connect">← Вернуться к выбору режима</a>
+        <div class="footer">GRN VPN • защищённое подключение</div>
       </div>
-      <div class="copy">${subUrl}</div>
-      <a class="back" href="${origin}/connect">← Вернуться к выбору режима</a>
-      <div class="note">Happ официально поддерживает добавление конфигураций и подписок через URL и deep link. Incy документирует <b>incy://import/{data}</b>, а v2RayTun — <b>v2raytun://import/{configuration}</b> и <b>v2raytun://import/{subscription_link}</b>.</div>
     </section>
   </main>
 </body>
