@@ -13,6 +13,7 @@ async function serveSubscription(request, cfg) {
   const f = url.searchParams.get("f");
   const filename = u ? `user_${u}.txt` : f;
   if (!filename || (u && !isValidChatId(u)) || (f && !isSafeConfigFilename(f))) return new Response("Bad subscription path", { status: 400 });
+  if (!cfg.githubToken) return new Response("Subscription service is not configured", { status: 503 });
   const content = await getFileContent(cfg, filename);
   if (!content) return new Response("Subscription not found", { status: 404 });
   if (!isVpnClient(request.headers.get("user-agent"))) {
@@ -31,19 +32,28 @@ async function serveSubscription(request, cfg) {
 export default {
   async fetch(request, env) {
     const cfg = getConfig(env);
-    if (!cfg.telegramToken || !cfg.githubToken) return new Response("Worker secrets are not configured", { status: 503 });
-    if (cfg.db) { try { await initDatabase(cfg.db); } catch (e) { console.error("D1 init failed", e); } }
     const url = new URL(request.url);
-    if (url.pathname === "/sub") return serveSubscription(request, cfg);
+
     if (url.pathname === "/health") return Response.json({ ok: true, service: "oceaniavpn" });
+    if (url.pathname === "/") return new Response("Oceania VPN bot is running", { headers: { "content-type": "text/plain;charset=utf-8" } });
+
     if (url.pathname === "/telegram/webhook") {
       if (request.method !== "POST") return new Response("Method Not Allowed", { status: 405 });
+      if (!cfg.telegramToken) return new Response("Telegram bot token is not configured", { status: 503 });
       if (cfg.webhookSecret && request.headers.get("x-telegram-bot-api-secret-token") !== cfg.webhookSecret) return new Response("Unauthorized", { status: 401 });
-      const update = await request.json();
-      await handleUpdate(cfg, update);
-      return Response.json({ ok: true });
+      try {
+        const update = await request.json();
+        console.log("Telegram update", JSON.stringify({ update_id: update?.update_id, type: update?.message ? "message" : update?.callback_query ? "callback_query" : "other", chat_id: update?.message?.chat?.id ?? update?.callback_query?.message?.chat?.id }));
+        if (cfg.db) { try { await initDatabase(cfg.db); } catch (e) { console.error("D1 init failed", e); } }
+        await handleUpdate(cfg, update);
+        return Response.json({ ok: true });
+      } catch (e) {
+        console.error("Telegram webhook error", e);
+        return Response.json({ ok: false }, { status: 200 });
+      }
     }
-    if (url.pathname === "/") return new Response("Oceania VPN bot is running", { headers: { "content-type": "text/plain;charset=utf-8" } });
+
+    if (url.pathname === "/sub") return serveSubscription(request, cfg);
     return new Response("Not Found", { status: 404 });
   }
 };
