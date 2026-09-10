@@ -9,10 +9,10 @@ CONFIGS_FOLDER = "configs"
 BRANCH = "main"
 
 # Create a separate Cloudflare D1 database for this bot and add its binding here:
-# [[d1_databases]]
-# binding = "DB"
-# database_name = "oceaniavpn-referrals"
-# database_id = "YOUR_D1_DATABASE_ID"
+[[d1_databases]]
+binding = "DB"
+database_name = "vpndb"
+database_id = "9f78b217-8d98-4519-b075-bb60ba98c57e"
 
 # Secrets are configured in Cloudflare, not committed here:
 # TELEGRAM_BOT_TOKEN
