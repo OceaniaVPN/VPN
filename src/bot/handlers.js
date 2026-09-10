@@ -1,4 +1,4 @@
-import { start, referral, help } from "./commands.js";
+import { start, referral, help, create, my } from "./commands.js";
 import { sendMessage, answerCallback } from "../telegram.js";
 
 export async function handleUpdate(cfg, update) {
@@ -10,6 +10,8 @@ export async function handleUpdate(cfg, update) {
     if (cb.data === "menu") return start(cfg, chatId, cb.from);
     if (cb.data === "ref") return referral(cfg, chatId);
     if (cb.data === "help") return help(cfg, chatId);
+    if (cb.data === "create") return create(cfg, chatId, null);
+    if (cb.data === "my") return my(cfg, chatId);
     return sendMessage(cfg.telegramToken, chatId, "Функция подключается. Используй /start или /help.");
   }
   if (!msg?.chat?.id) return;
@@ -21,6 +23,8 @@ export async function handleUpdate(cfg, update) {
     if (cmd === "start") return start(cfg, chatId, msg.from, arg);
     if (cmd === "ref") return referral(cfg, chatId);
     if (cmd === "help") return help(cfg, chatId);
+    if (cmd === "create") return create(cfg, chatId, arg);
+    if (cmd === "my") return my(cfg, chatId);
   }
   return sendMessage(cfg.telegramToken, chatId, "Используй /start для открытия меню.");
 }
