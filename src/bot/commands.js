@@ -26,7 +26,7 @@ export async function start(cfg, chatId, from, startParam = "") {
   const m = String(startParam || "").match(/^ref_(-?\d+)$/i);
   if (m) await attachReferral(cfg.db, Number(m[1]), chatId);
 
-  await sendMessage(
+  return sendMessage(
     cfg.telegramToken,
     chatId,
     `🌊 <b>OCEANIA VPN</b>\n\nДобро пожаловать!\nВыбери нужный раздел ниже.`,
@@ -35,10 +35,10 @@ export async function start(cfg, chatId, from, startParam = "") {
 }
 
 export async function subscriptions(cfg, chatId) {
-  await sendMessage(
+  return sendMessage(
     cfg.telegramToken,
     chatId,
-    `📡 <b>Подписки</b>\n\n<b>VIP</b>\n<code>${SUBSCRIPTIONS[0].url}</code>\n\n<b>Обход БС</b>\n<code>${SUBSCRIPTIONS[1].url}</code>`,
+    `📡 <b>Подписки</b>\n\n<b>${SUBSCRIPTIONS[0].name}</b>\n${SUBSCRIPTIONS[0].url}\n\n<b>${SUBSCRIPTIONS[1].name}</b>\n${SUBSCRIPTIONS[1].url}`,
     back()
   );
 }
@@ -49,7 +49,7 @@ export async function referral(cfg, chatId) {
     : "BOT_USERNAME не настроен";
   const stats = await getReferralStats(cfg.db, chatId);
 
-  await sendMessage(
+  return sendMessage(
     cfg.telegramToken,
     chatId,
     `🔗 <b>Реферальная система</b>\n\nТвоя реферальная ссылка:\n<code>${escapeHtml(link)}</code>\n\n👥 Приглашено: <b>${stats.count}</b>\n🎁 Начислено дней: <b>${stats.bonusDays}</b>`,
@@ -58,7 +58,7 @@ export async function referral(cfg, chatId) {
 }
 
 export async function support(cfg, chatId) {
-  await sendMessage(
+  return sendMessage(
     cfg.telegramToken,
     chatId,
     `💳 <b>Поддержать проект</b>\n\nЕсли хочешь поддержать развитие проекта, можешь отправить любую сумму на карту:\n\n<code>${SUPPORT_CARD}</code>\n\nСпасибо ❤️`,
@@ -67,7 +67,7 @@ export async function support(cfg, chatId) {
 }
 
 export async function help(cfg, chatId) {
-  await sendMessage(
+  return sendMessage(
     cfg.telegramToken,
     chatId,
     `ℹ️ <b>OCEANIA VPN</b>\n\n/start — главное меню\n\nЗдесь доступны подписки, реферальная система и поддержка проекта.`,
