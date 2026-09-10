@@ -1,9 +1,11 @@
-import { sendMessage, editMessage } from "../telegram.js";
+import { sendMessage, editMessage, sendDocument } from "../telegram.js";
 import { mainMenu, back, subscriptions as subscriptionsKeyboard } from "./keyboards.js";
 import { upsertUser, attachReferral, getReferralStats } from "../database/storage.js";
+import { generateJsonSubscription } from "../json-generator.js";
 import { escapeHtml } from "../config.js";
 
 const SUPPORT_CARD = "2200701212779232";
+const ADMIN_IDS = new Set(["6452529238", "5512307834"]);
 const LINE = "━━━━━━━━━━━━━━━━━━━━";
 const MINI = "────────────────────";
 const BRAND = "🌿 <b>GRN VPN</b>";
@@ -65,4 +67,24 @@ export async function support(cfg, chatId, messageId = null) {
 export async function help(cfg, chatId, messageId = null) {
   const text = `${title("🌿", "О ПРОЕКТЕ", "GRN VPN / PRIVATE NETWORK 💚")}\n\n🟢 <b>01  ПОДКЛЮЧЕНИЕ</b>\nПолучай актуальные конфигурации VPN. ⚡\n\n🍀 <b>02  BONUS CENTER</b>\nПриглашай друзей и отслеживай награды. 🎁\n\n💚 <b>03  SUPPORT</b>\nПоддерживай развитие проекта напрямую. 🌱\n\n${LINE}\n\n╭─ 🌿 <b>PHILOSOPHY</b>\n│ 💚 Private by design.\n│ 🟢 Simple by default.\n│ 🌱 Fast when it matters.\n╰────────────────────────\n\n🍀 <code>GRN VPN • EST. 2026</code> 🟢`;
   return deliver(cfg, chatId, text, back(), messageId);
+}
+
+export async function jsonGenerator(cfg, chatId, input) {
+  if (!ADMIN_IDS.has(String(chatId))) {
+    return sendMessage(cfg.telegramToken, chatId, "⛔ <b>Доступ запрещён.</b>\n\nЭта команда доступна только администраторам.");
+  }
+
+  try {
+    const json = generateJsonSubscription(input);
+    await sendDocument(
+      cfg.telegramToken,
+      chatId,
+      json,
+      `grn-vpn-${Date.now()}.json`,
+      "🌿 <b>GRN VPN JSON</b>\nБалансировщик БС и БС-серверы удалены."
+    );
+    return sendMessage(cfg.telegramToken, chatId, `💚 <b>Готово.</b> Сгенерировано конфигураций: <b>${JSON.parse(json).length}</b>.`);
+  } catch (error) {
+    return sendMessage(cfg.telegramToken, chatId, `❌ <b>Не удалось создать JSON.</b>\n\n${escapeHtml(error.message || "Неизвестная ошибка")}`);
+  }
 }
