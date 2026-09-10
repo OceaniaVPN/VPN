@@ -52,7 +52,7 @@ function pageHtml(origin, plan) {
     <section class="glass">
       <div class="brand">🌿 GRN VPN</div>
       <h1>Подключение</h1>
-      <div class="sub">${selected.title}. Выберите приложение — Worker передаст ему официальную deep-link ссылку на подписку.</div>
+      <div class="sub">${selected.title}. Выберите приложение — Worker передаст ему deep-link ссылку на подписку.</div>
       <div class="grid">
         <a class="btn" href="${happ}"><span class="name">💚 Открыть в Happ</span><span class="hint">Импорт подписки через deep link</span></a>
         <a class="btn" href="${incy}"><span class="name">🌱 Открыть в Incy</span><span class="hint">Импорт подписки через deep link</span></a>
@@ -83,8 +83,7 @@ async function subscriptionResponse(plan) {
       "content-type": "text/plain; charset=utf-8",
       "cache-control": "no-store",
       "profile-title": selected.title.slice(0, 25),
-      "profile-web-page-url": "https://vpn.novogodniysait.workers.dev/connect",
-      "support-url": "https://t.me/"
+      "profile-web-page-url": "https://vpn.novogodniysait.workers.dev/connect"
     }
   });
 }
