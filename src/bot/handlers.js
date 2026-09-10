@@ -1,4 +1,5 @@
 import { start, subscriptions, referral, support, help } from "./commands.js";
+import { mainMenu } from "./keyboards.js";
 import { sendMessage, answerCallback } from "../telegram.js";
 
 export async function handleUpdate(cfg, update) {
