@@ -44,7 +44,7 @@ export async function start(cfg, chatId, from, startParam = "", messageId = null
 }
 
 export async function subscriptions(cfg, chatId, messageId = null) {
-  const text = `${title("🌿", "ПОДКЛЮЧЕНИЕ", "Выбери режим доступа 💚")}\n\n╭─ 🟢 <b>VIP / PREMIUM</b> 👑\n│ Максимум комфорта и скорости. ⚡\n│ <i>Основная конфигурация проекта</i>\n╰────────────────────────\n\n╭─ 🌱 <b>ОБХОД БС</b> 🛡️\n│ Альтернативный режим подключения.\n│ <i>Обход белых списков</i>\n╰────────────────────────\n\n💚 <b>Кнопка откроет страницу подключения на GRN VPN.</b>\n<i>На странице можно сразу добавить подписку в Happ, Incy или v2RayTun по их официальным deep-link форматам.</i>\n\n🟢 <code>ENCRYPTED • PRIVATE • READY</code>`;
+  const text = `${title("🌿", "ПОДКЛЮЧЕНИЕ", "Выбери режим доступа 💚")}\n\n👑 <b>VIP / PREMIUM</b>\nМаксимум комфорта и скорости. ⚡\n<i>Основная конфигурация проекта</i>\n\n🛡️ <b>ОБХОД БС</b>\nАльтернативный режим подключения.\n<i>Обход белых списков</i>`;
   return deliver(cfg, chatId, text, subscriptionsKeyboard(cfg.workerOrigin), messageId);
 }
 
@@ -65,7 +65,7 @@ export async function support(cfg, chatId, messageId = null) {
 }
 
 export async function help(cfg, chatId, messageId = null) {
-  const text = `${title("🌿", "О ПРОЕКТЕ", "GRN VPN / PRIVATE NETWORK 💚")}\n\n🟢 <b>01  ПОДКЛЮЧЕНИЕ</b>\nПолучай актуальные конфигурации VPN. ⚡\n\n🍀 <b>02  BONUS CENTER</b>\nПриглашай друзей и отслеживай награды. 🎁\n\n💚 <b>03  SUPPORT</b>\nПоддерживай развитие проекта напрямую. 🌱\n\n${LINE}\n\n╭─ 🌿 <b>PHILOSOPHY</b>\n│ 💚 Private by design.\n│ 🟢 Simple by default.\n│ 🌱 Fast when it matters.\n╰────────────────────────\n\n🍀 <code>GRN VPN • EST. 2026</code> 🟢`;
+  const text = `${title("🌿", "О ПРОЕКТЕ", "GRN VPN / PRIVATE NETWORK 💚")}\n\n🟢 <b>01  ПОДКЛЮЧЕНИЕ</b>\nПолучай актуальные конфигурации VPN. ⚡\n\n🍀 <b>02  BONUS CENTER</b>\nПриглашай друзей и отслеживай награды. 🎁\n\n💚 <b>03  SUPPORT</b>\nПоддерживай развитие проекта напрямую. 🌱`;
   return deliver(cfg, chatId, text, back(), messageId);
 }
 
