@@ -13,17 +13,18 @@ const SUBSCRIPTIONS = {
   }
 };
 
+const APP_ICONS = {
+  happ: "https://raw.githubusercontent.com/OceaniaVPN/VPN/main/icon/happ.png",
+  incy: "https://raw.githubusercontent.com/OceaniaVPN/VPN/main/icon/INCY.png",
+  v2raytun: "https://raw.githubusercontent.com/OceaniaVPN/VPN/main/icon/v2raytun.png"
+};
+
 function pageHtml(origin, plan) {
   const selected = SUBSCRIPTIONS[plan] || SUBSCRIPTIONS.vip;
   const subUrl = `${origin}/sub/${plan}`;
   const happ = `happ://add/${subUrl}`;
   const incy = `incy://import/${subUrl}`;
   const v2raytun = `v2raytun://import/${subUrl}`;
-  const icons = {
-    happ: "https://raw.githubusercontent.com/OceaniaVPN/VPN/main/icon/happ.png",
-    incy: "https://raw.githubusercontent.com/OceaniaVPN/VPN/main/icon/INCY.png",
-    v2raytun: "https://raw.githubusercontent.com/OceaniaVPN/VPN/main/icon/v2raytun.png"
-  };
 
   return `<!doctype html>
 <html lang="ru">
@@ -39,7 +40,6 @@ function pageHtml(origin, plan) {
     }
 
     * { box-sizing: border-box; }
-
     html { min-height: 100%; }
 
     body {
@@ -72,28 +72,15 @@ function pageHtml(origin, plan) {
       pointer-events: none;
     }
 
-    body::before {
-      top: -120px;
-      left: -80px;
-      background: #43ffae;
-    }
-
-    body::after {
-      right: -100px;
-      bottom: -130px;
-      background: #6e67ff;
-    }
+    body::before { top: -120px; left: -80px; background: #43ffae; }
+    body::after { right: -100px; bottom: -130px; background: #6e67ff; }
 
     @keyframes gradientMove {
       0% { background-position: 0% 20%; }
       100% { background-position: 100% 80%; }
     }
 
-    .wrap {
-      position: relative;
-      width: min(520px, 100%);
-      z-index: 1;
-    }
+    .wrap { position: relative; width: min(520px, 100%); z-index: 1; }
 
     .glass {
       position: relative;
@@ -102,9 +89,7 @@ function pageHtml(origin, plan) {
       border: 1px solid rgba(255,255,255,.16);
       border-radius: 32px;
       background: linear-gradient(145deg, rgba(255,255,255,.13), rgba(255,255,255,.045));
-      box-shadow:
-        0 30px 90px rgba(0,0,0,.42),
-        inset 0 1px 0 rgba(255,255,255,.12);
+      box-shadow: 0 30px 90px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.12);
       backdrop-filter: blur(24px) saturate(130%);
       -webkit-backdrop-filter: blur(24px) saturate(130%);
     }
@@ -164,11 +149,7 @@ function pageHtml(origin, plan) {
       font-weight: 750;
     }
 
-    .grid {
-      display: grid;
-      gap: 11px;
-      margin-top: 24px;
-    }
+    .grid { display: grid; gap: 11px; margin-top: 24px; }
 
     a.btn {
       position: relative;
@@ -218,13 +199,7 @@ function pageHtml(origin, plan) {
     }
 
     .text { min-width: 0; flex: 1; }
-
-    .name {
-      display: block;
-      font-size: 16px;
-      font-weight: 800;
-      letter-spacing: -.01em;
-    }
+    .name { display: block; font-size: 16px; font-weight: 800; letter-spacing: -.01em; }
 
     .arrow {
       color: rgba(220,255,232,.55);
@@ -232,10 +207,7 @@ function pageHtml(origin, plan) {
       transition: transform .18s ease, color .18s ease;
     }
 
-    a.btn:hover .arrow {
-      color: #c3ffda;
-      transform: translateX(3px);
-    }
+    a.btn:hover .arrow { color: #c3ffda; transform: translateX(3px); }
 
     a.btn.primary {
       color: #062014;
@@ -297,17 +269,17 @@ function pageHtml(origin, plan) {
 
         <div class="grid">
           <a class="btn primary" href="${happ}">
-            <span class="icon"><img src="${icons.happ}" alt="Happ"></span>
+            <span class="icon"><img src="/icon/happ.png" alt="Happ"></span>
             <span class="text"><span class="name">Happ</span></span>
             <span class="arrow">›</span>
           </a>
           <a class="btn" href="${incy}">
-            <span class="icon"><img src="${icons.incy}" alt="Incy"></span>
+            <span class="icon"><img src="/icon/INCY.png" alt="Incy"></span>
             <span class="text"><span class="name">Incy</span></span>
             <span class="arrow">›</span>
           </a>
           <a class="btn" href="${v2raytun}">
-            <span class="icon"><img src="${icons.v2raytun}" alt="v2RayTun"></span>
+            <span class="icon"><img src="/icon/v2raytun.png" alt="v2RayTun"></span>
             <span class="text"><span class="name">v2RayTun</span></span>
             <span class="arrow">›</span>
           </a>
@@ -320,6 +292,24 @@ function pageHtml(origin, plan) {
   </main>
 </body>
 </html>`;
+}
+
+async function iconResponse(name) {
+  const source = APP_ICONS[name];
+  if (!source) return new Response("Not Found", { status: 404 });
+
+  const upstream = await fetch(source, {
+    headers: { "User-Agent": "GRN-VPN-Worker/1.0" }
+  });
+  if (!upstream.ok) return new Response("Icon unavailable", { status: 502 });
+
+  const contentType = upstream.headers.get("content-type") || "image/png";
+  return new Response(upstream.body, {
+    headers: {
+      "content-type": contentType,
+      "cache-control": "public, max-age=86400, s-maxage=604800, immutable"
+    }
+  });
 }
 
 async function subscriptionResponse(plan) {
@@ -362,6 +352,11 @@ export default {
       return new Response(pageHtml(url.origin, SUBSCRIPTIONS[plan] ? plan : "vip"), {
         headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" }
       });
+    }
+
+    const iconMatch = url.pathname.match(/^\/icon\/(happ|INCY|v2raytun)\.png$/i);
+    if (iconMatch && request.method === "GET") {
+      return iconResponse(iconMatch[1].toLowerCase());
     }
 
     const subMatch = url.pathname.match(/^\/sub\/(vip|bs)$/i);
