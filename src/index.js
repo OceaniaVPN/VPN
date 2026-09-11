@@ -19,6 +19,11 @@ function pageHtml(origin, plan) {
   const happ = `happ://add/${subUrl}`;
   const incy = `incy://import/${subUrl}`;
   const v2raytun = `v2raytun://import/${subUrl}`;
+  const icons = {
+    happ: "https://raw.githubusercontent.com/OceaniaVPN/VPN/main/icon/happ.png",
+    incy: "https://raw.githubusercontent.com/OceaniaVPN/VPN/main/icon/INCY.png",
+    v2raytun: "https://raw.githubusercontent.com/OceaniaVPN/VPN/main/icon/v2raytun.png"
+  };
 
   return `<!doctype html>
 <html lang="ru">
@@ -197,10 +202,19 @@ function pageHtml(origin, plan) {
       flex: 0 0 42px;
       width: 42px;
       height: 42px;
+      padding: 4px;
+      overflow: hidden;
       border-radius: 14px;
       background: rgba(184,255,207,.11);
       border: 1px solid rgba(184,255,207,.12);
-      font-size: 21px;
+    }
+
+    .icon img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 10px;
     }
 
     .text { min-width: 0; flex: 1; }
@@ -283,17 +297,17 @@ function pageHtml(origin, plan) {
 
         <div class="grid">
           <a class="btn primary" href="${happ}">
-            <span class="icon">💚</span>
+            <span class="icon"><img src="${icons.happ}" alt="Happ"></span>
             <span class="text"><span class="name">Happ</span></span>
             <span class="arrow">›</span>
           </a>
           <a class="btn" href="${incy}">
-            <span class="icon">🌱</span>
+            <span class="icon"><img src="${icons.incy}" alt="Incy"></span>
             <span class="text"><span class="name">Incy</span></span>
             <span class="arrow">›</span>
           </a>
           <a class="btn" href="${v2raytun}">
-            <span class="icon">🟢</span>
+            <span class="icon"><img src="${icons.v2raytun}" alt="v2RayTun"></span>
             <span class="text"><span class="name">v2RayTun</span></span>
             <span class="arrow">›</span>
           </a>
