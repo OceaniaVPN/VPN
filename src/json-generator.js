@@ -119,46 +119,20 @@ function normalizeJsonOutbound(out, index) {
   return copy;
 }
 
-function buildSubscription(outbounds) {
-  const proxyOutbounds = outbounds.map((out, index) => normalizeJsonOutbound(out, index));
-  const tags = proxyOutbounds.map(out => out.tag);
-  const manualServers = proxyOutbounds.map(out => ({
-    tag: out.tag,
-    name: out.remarks
-  }));
-
+function baseConfig() {
   return {
     dns: {
       servers: ["1.1.1.1", "8.8.8.8", "77.88.8.8"],
       queryStrategy: "UseIP"
     },
-    observatory: {
-      subjectSelector: ["proxy-"],
-      probeUrl: "https://www.google.com/generate_204",
-      probeInterval: "30s",
-      enableConcurrency: true
-    },
     routing: {
-      domainStrategy: "IPIfNonMatch",
       rules: [
-        { type: "field", protocol: ["quic", "bittorrent"], outboundTag: "block" },
-        { type: "field", network: "tcp,udp", balancerTag: "auto" }
+        { type: "field", protocol: ["quic"], outboundTag: "block" },
+        { type: "field", protocol: ["bittorrent"], outboundTag: "block" },
+        { type: "field", domain: ["regexp:\\.(ru|su|xn--p1ai)$"], outboundTag: "direct" }
       ],
-      balancers: [
-        {
-          tag: "auto",
-          selector: ["proxy-"],
-          fallbackTag: tags[0],
-          strategy: {
-            type: "leastLoad",
-            settings: {
-              expected: Math.min(2, tags.length),
-              maxRTT: "1s",
-              tolerance: 0.2
-            }
-          }
-        }
-      ]
+      domainMatcher: "hybrid",
+      domainStrategy: "IPIfNonMatch"
     },
     inbounds: [
       {
@@ -177,20 +151,79 @@ function buildSubscription(outbounds) {
         settings: { allowTransparent: false },
         sniffing: { enabled: true, routeOnly: false, destOverride: ["http", "tls"] }
       }
-    ],
-    outbounds: [
-      ...proxyOutbounds,
+    ]
+  };
+}
+
+function buildSubscription(outbounds) {
+  const proxyOutbounds = outbounds.map((out, index) => normalizeJsonOutbound(out, index));
+  const tags = proxyOutbounds.map(out => out.tag);
+
+  const balancerConfig = baseConfig();
+  balancerConfig.routing.rules.push({
+    type: "field",
+    network: "tcp,udp",
+    balancerTag: "Auto_Balancer_Regular"
+  });
+  balancerConfig.routing.balancers = [{
+    tag: "Auto_Balancer_Regular",
+    selector: tags,
+    strategy: {
+      type: "leastLoad",
+      settings: {
+        maxRTT: "800ms",
+        expected: Math.min(2, tags.length),
+        baselines: ["200ms", "400ms"],
+        tolerance: 0.05
+      }
+    },
+    fallbackTag: "direct"
+  }];
+  balancerConfig.outbounds = [
+    ...proxyOutbounds,
+    { tag: "direct", protocol: "freedom" },
+    { tag: "block", protocol: "blackhole" }
+  ];
+  balancerConfig.burstObservatory = {
+    pingConfig: {
+      timeout: "3s",
+      interval: "5m",
+      sampling: 1,
+      destination: "http://www.gstatic.com/generate_204"
+    },
+    subjectSelector: tags
+  };
+  balancerConfig.remarks = "⚖️ Балансировщик (Обычные) [ЭКО]";
+  balancerConfig.meta = { description: "Авто-балансировщик обычных серверов" };
+
+  const manualConfigs = proxyOutbounds.map(out => {
+    const config = baseConfig();
+    config.routing.rules.push({
+      type: "field",
+      network: "tcp,udp",
+      outboundTag: out.tag
+    });
+    config.outbounds = [
+      out,
       { tag: "direct", protocol: "freedom" },
       { tag: "block", protocol: "blackhole" }
-    ],
-    remarks: "GRN VPN Auto",
-    meta: {
-      description: "GRN VPN: one auto balancer followed by manually selectable named servers",
-      balancer: "auto",
-      manualSelection: true,
-      manualServers
-    }
-  };
+    ];
+    config.burstObservatory = {
+      pingConfig: {
+        timeout: "3s",
+        interval: "5m",
+        sampling: 1,
+        destination: "http://www.gstatic.com/generate_204"
+      },
+      subjectSelector: [out.tag]
+    };
+    config.remarks = out.remarks;
+    config.meta = { description: "Оптимизирован" };
+    return config;
+  });
+
+  // The first item is always the auto-balancer; manual server configs follow it.
+  return [balancerConfig, ...manualConfigs];
 }
 
 export function generateJsonSubscription(input) {

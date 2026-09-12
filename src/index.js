@@ -340,7 +340,7 @@ async function subscriptionResponse(request, plan) {
   return response;
 }
 
-function subscriptionMetadata(request, plan) {
+function subscriptionMetadata(plan) {
   const selected = SUBSCRIPTIONS[plan];
   if (!selected) return new Response("Unknown subscription", { status: 404 });
 
@@ -389,7 +389,7 @@ export default {
 
     const metadataMatch = url.pathname.match(/^\/sub\/(vip|bs)\/metadata$/i);
     if (metadataMatch && request.method === "GET") {
-      return subscriptionMetadata(request, metadataMatch[1].toLowerCase());
+      return subscriptionMetadata(metadataMatch[1].toLowerCase());
     }
 
     const subMatch = url.pathname.match(/^\/sub\/(vip|bs)$/i);
