@@ -329,27 +329,35 @@ async function subscriptionResponse(request, plan) {
 
   const json = await upstream.text();
 
-  const body = [
-    `#profile-title: ${selected.title}`,
-    "#profile-update-interval: 2",
-    "#support-url: https://t.me/info_Grina",
-    "#announce: VPN не гарантирует работоспособность владелец - @apruxx",
-    "#subscription-userinfo: upload=0; download=0; total=107374292918240; expire=0",
-    "",
-    json
-  ].join("\n");
-
-  const response = new Response(body, {
+  const response = new Response(json, {
     headers: {
-      "content-type": "text/plain; charset=utf-8",
-      "cache-control": "public, max-age=3600, s-maxage=3600",
-      "profile-title": selected.title.slice(0, 25),
-      "profile-web-page-url": "https://vpn.novogodniysait.workers.dev/connect"
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "public, max-age=3600, s-maxage=3600"
     }
   });
 
   await cache.put(cacheKey, response.clone());
   return response;
+}
+
+function subscriptionMetadata(request, plan) {
+  const selected = SUBSCRIPTIONS[plan];
+  if (!selected) return new Response("Unknown subscription", { status: 404 });
+
+  const metadata = [
+    `#profile-title: ${selected.title}`,
+    "#profile-update-interval: 2",
+    "#support-url: https://t.me/info_Grina",
+    "#announce: VPN не гарантирует работоспособность владелец - @apruxx",
+    "#subscription-userinfo: upload=0; download=0; total=107374292918240; expire=0"
+  ].join("\n");
+
+  return new Response(metadata + "\n", {
+    headers: {
+      "content-type": "text/plain; charset=utf-8",
+      "cache-control": "public, max-age=3600, s-maxage=3600"
+    }
+  });
 }
 
 export default {
@@ -377,6 +385,11 @@ export default {
     const iconMatch = url.pathname.match(/^\/icon\/(happ|INCY|v2raytun)\.png$/i);
     if (iconMatch && request.method === "GET") {
       return iconResponse(iconMatch[1].toLowerCase());
+    }
+
+    const metadataMatch = url.pathname.match(/^\/sub\/(vip|bs)\/metadata$/i);
+    if (metadataMatch && request.method === "GET") {
+      return subscriptionMetadata(request, metadataMatch[1].toLowerCase());
     }
 
     const subMatch = url.pathname.match(/^\/sub\/(vip|bs)$/i);
