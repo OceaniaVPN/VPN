@@ -77,9 +77,11 @@ export async function jsonGenerator(cfg, chatId, input) {
   try {
     const json = generateJsonSubscription(input);
     const parsed = JSON.parse(json);
-    const serverCount = Array.isArray(parsed?.outbounds)
-      ? parsed.outbounds.filter(out => !["direct", "block"].includes(out?.tag)).length
-      : 0;
+    const serverCount = Array.isArray(parsed)
+      ? Math.max(0, parsed.length - 1)
+      : (Array.isArray(parsed?.outbounds)
+        ? parsed.outbounds.filter(out => !["direct", "block"].includes(out?.tag)).length
+        : 0);
 
     await sendDocument(
       cfg.telegramToken,
@@ -88,7 +90,7 @@ export async function jsonGenerator(cfg, chatId, input) {
       `grn-vpn-${Date.now()}.json`,
       `🌿 <b>GRN VPN JSON</b>\nАвтобалансировщик: <b>1</b>\nСерверов для ручного выбора: <b>${serverCount}</b>\nВсе серверы сохранены с человеческими названиями из remark VLESS.`
     );
-    return sendMessage(cfg.telegramToken, chatId, `💚 <b>Готово.</b> Один автобалансировщик <code>auto</code> + серверы для ручного выбора с названиями из ключей.`);
+    return sendMessage(cfg.telegramToken, chatId, `💚 <b>Готово.</b> Первый конфиг — автобалансировщик, далее все конфиги для ручного выбора с названиями из ключей.`);
   } catch (error) {
     return sendMessage(cfg.telegramToken, chatId, `❌ <b>Не удалось создать JSON.</b>\n\n${escapeHtml(error.message || "Неизвестная ошибка")}`);
   }
