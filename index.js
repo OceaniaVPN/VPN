@@ -312,14 +312,14 @@ async function iconResponse(name) {
   });
 }
 
-async function subscriptionResponse(plan) {
+async function subscriptionResponse(request, plan) {
   const selected = SUBSCRIPTIONS[plan];
   if (!selected) return new Response("Unknown subscription", { status: 404 });
 
-  const cacheKey = new Request(`https://cache.grn-vpn.local/sub/${plan}`);
   const cache = caches.default;
+  const cacheKey = new Request(new URL(`/sub/${plan}`, request.url).toString(), request);
 
-  const cached = await cache.match(cacheKey);
+  let cached = await cache.match(cacheKey);
   if (cached) return cached;
 
   const upstream = await fetch(selected.source, {
@@ -329,16 +329,17 @@ async function subscriptionResponse(plan) {
 
   const json = await upstream.text();
 
-  const flags = [
-    `#profile-title: ${selected.title.slice(0, 25)}`,
+  const body = [
+    `#profile-title: ${selected.title}`,
     "#profile-update-interval: 2",
     "#support-url: https://t.me/info_Grina",
     "#announce: VPN не гарантирует работоспособность владелец - @apruxx",
     "#subscription-userinfo: upload=0; download=0; total=107374292918240; expire=0",
-    ""
+    "",
+    json
   ].join("\n");
 
-  const response = new Response(`${flags}${json}`, {
+  const response = new Response(body, {
     headers: {
       "content-type": "text/plain; charset=utf-8",
       "cache-control": "public, max-age=3600, s-maxage=3600",
@@ -380,7 +381,7 @@ export default {
 
     const subMatch = url.pathname.match(/^\/sub\/(vip|bs)$/i);
     if (subMatch && request.method === "GET") {
-      return subscriptionResponse(subMatch[1].toLowerCase());
+      return subscriptionResponse(request, subMatch[1].toLowerCase());
     }
 
     if (url.pathname !== "/telegram/webhook") {
