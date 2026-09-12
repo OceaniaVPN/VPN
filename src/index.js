@@ -312,24 +312,44 @@ async function iconResponse(name) {
   });
 }
 
-async function subscriptionResponse(plan) {
+async function subscriptionResponse(request, plan) {
   const selected = SUBSCRIPTIONS[plan];
   if (!selected) return new Response("Unknown subscription", { status: 404 });
+
+  const cache = caches.default;
+  const cacheKey = new Request(new URL(`/sub/${plan}`, request.url).toString(), request);
+
+  let cached = await cache.match(cacheKey);
+  if (cached) return cached;
 
   const upstream = await fetch(selected.source, {
     headers: { "User-Agent": "GRN-VPN-Worker/1.0" }
   });
   if (!upstream.ok) return new Response("Subscription source unavailable", { status: 502 });
 
-  const body = await upstream.text();
-  return new Response(body, {
+  const json = await upstream.text();
+
+  const body = [
+    `#profile-title: ${selected.title}`,
+    "#profile-update-interval: 2",
+    "#support-url: https://t.me/info_Grina",
+    "#announce: VPN не гарантирует работоспособность владелец - @apruxx",
+    "#subscription-userinfo: upload=0; download=0; total=107374292918240; expire=0",
+    "",
+    json
+  ].join("\n");
+
+  const response = new Response(body, {
     headers: {
       "content-type": "text/plain; charset=utf-8",
-      "cache-control": "no-store",
+      "cache-control": "public, max-age=3600, s-maxage=3600",
       "profile-title": selected.title.slice(0, 25),
       "profile-web-page-url": "https://vpn.novogodniysait.workers.dev/connect"
     }
   });
+
+  await cache.put(cacheKey, response.clone());
+  return response;
 }
 
 export default {
@@ -361,7 +381,7 @@ export default {
 
     const subMatch = url.pathname.match(/^\/sub\/(vip|bs)$/i);
     if (subMatch && request.method === "GET") {
-      return subscriptionResponse(subMatch[1].toLowerCase());
+      return subscriptionResponse(request, subMatch[1].toLowerCase());
     }
 
     if (url.pathname !== "/telegram/webhook") {
