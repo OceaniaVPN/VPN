@@ -20,6 +20,14 @@ const APP_ICONS = {
   v2raytun: "https://raw.githubusercontent.com/OceaniaVPN/VPN/main/icon/v2raytun.png"
 };
 
+const SUBSCRIPTION_METADATA = [
+  "#profile-title: GRN_VPN",
+  "#profile-update-interval: 2",
+  "#support-url: https://t.me/info_Grina",
+  "#announce: VPN не гарантирует работа способность владелец - @apruxx",
+  "#subscription-userinfo: upload=0; download=0; total=107374292918240; expire=0"
+].join("\n");
+
 function pageHtml(origin, plan) {
   const selected = SUBSCRIPTIONS[plan] || SUBSCRIPTIONS.vip;
   const subUrl = `${origin}/sub/${plan}`;
@@ -47,13 +55,12 @@ async function subscriptionResponse(request, plan) {
   if (!selected) return new Response("Unknown subscription", { status: 404 });
   const cache = caches.default;
   const cacheKey = new Request(new URL(`/sub/${plan}`, request.url).toString(), request);
-  let cached = await cache.match(cacheKey);
+  const cached = await cache.match(cacheKey);
   if (cached) return cached;
+
   const upstream = await fetch(selected.source, { headers: { "User-Agent": "GRN-VPN-Worker/1.0" } });
   if (!upstream.ok) return new Response("Subscription source unavailable", { status: 502 });
   const sourceText = await upstream.text();
-  // Upstream may be VLESS text with Clash/Hiddify metadata or already JSON.
-  // /sub/* always returns JSON, while /sub/*/metadata returns the metadata separately.
   const stripped = sourceText
     .split(/\r?\n/)
     .filter((line) => !line.trim().startsWith("#"))
@@ -73,21 +80,32 @@ async function subscriptionResponse(request, plan) {
       return new Response("Subscription source could not be converted to JSON", { status: 502 });
     }
   }
-  const response = new Response(json + "\n", { headers: { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=3600, s-maxage=3600" } });
+
+  const response = new Response(json + "\n", {
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "public, max-age=3600, s-maxage=3600"
+    }
+  });
   await cache.put(cacheKey, response.clone());
   return response;
 }
 
-function subscriptionMetadata(plan) {
+async function subscriptionMetadata(request, plan) {
   if (!SUBSCRIPTIONS[plan]) return new Response("Unknown subscription", { status: 404 });
-  const metadata = [
-    "#profile-title: GRN_VPN",
-    "#profile-update-interval: 2",
-    "#support-url: https://t.me/info_Grina",
-    "#announce: VPN не гарантирует работоспособность владелец - @apruxx",
-    "#subscription-userinfo: upload=0; download=0; total=107374292918240; expire=0"
-  ].join("\n");
-  return new Response(metadata + "\n", { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=3600, s-maxage=3600" } });
+  const cache = caches.default;
+  const cacheKey = new Request(new URL(`/sub/${plan}/metadata`, request.url).toString(), request);
+  const cached = await cache.match(cacheKey);
+  if (cached) return cached;
+
+  const response = new Response(SUBSCRIPTION_METADATA + "\n", {
+    headers: {
+      "content-type": "text/plain; charset=utf-8",
+      "cache-control": "public, max-age=3600, s-maxage=3600"
+    }
+  });
+  await cache.put(cacheKey, response.clone());
+  return response;
 }
 
 export default {
@@ -102,8 +120,8 @@ export default {
     }
     const iconMatch = url.pathname.match(/^\/icon\/(happ|INCY|v2raytun)\.png$/i);
     if (iconMatch && request.method === "GET") return iconResponse(iconMatch[1].toLowerCase());
-    const metadataMatch = url.pathname.match(/^\/sub\/(vip|bs)\/metadata$/i);
-    if (metadataMatch && request.method === "GET") return subscriptionMetadata(metadataMatch[1].toLowerCase());
+    const metadataMatch = url.pathname.match(/^\/sub\/(vip|bs)\/(metadata|flags)$/i);
+    if (metadataMatch && request.method === "GET") return subscriptionMetadata(request, metadataMatch[1].toLowerCase());
     const subMatch = url.pathname.match(/^\/sub\/(vip|bs)$/i);
     if (subMatch && request.method === "GET") return subscriptionResponse(request, subMatch[1].toLowerCase());
     if (url.pathname === "/telegram/webhook" && request.method === "POST") {
