@@ -69,7 +69,7 @@ async function subscriptionResponse(request, plan) {
   const selected = SUBSCRIPTIONS[plan];
   if (!selected) return new Response("Unknown subscription", { status: 404 });
   const cache = caches.default;
-  const cacheKey = new Request(new URL(`/sub/${plan}?cache=v3`, request.url).toString(), request);
+  const cacheKey = new Request(new URL(`/sub/${plan}?cache=v4`, request.url).toString(), request);
   const cached = await cache.match(cacheKey);
   if (cached) return cached;
 
@@ -112,7 +112,7 @@ async function subscriptionResponse(request, plan) {
 async function subscriptionMetadata(request, plan) {
   if (!SUBSCRIPTIONS[plan]) return new Response("Unknown subscription", { status: 404 });
   const cache = caches.default;
-  const cacheKey = new Request(new URL(`/sub/${plan}/metadata?cache=v3`, request.url).toString(), request);
+  const cacheKey = new Request(new URL(`/sub/${plan}/metadata?cache=v4`, request.url).toString(), request);
   const cached = await cache.match(cacheKey);
   if (cached) return cached;
 
