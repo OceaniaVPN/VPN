@@ -222,7 +222,7 @@ function buildSubscription(outbounds) {
     return config;
   });
 
-  // The first item is always the auto-balancer; manual server configs follow it.
+  // URI input: auto-balancer first, then manual server configs.
   return [balancerConfig, ...manualConfigs];
 }
 
@@ -230,11 +230,24 @@ export function generateJsonSubscription(input) {
   const raw = String(input || "").trim();
   if (!raw) throw new Error("Ключи не переданы");
 
+  // A ready-made JSON config must stay untouched. Do NOT add a balancer to it.
+  // This also handles pretty-printed multi-line JSON correctly.
+  try {
+    const parsed = JSON.parse(raw.replace(/```(?:json|text)?/gi, "").replace(/```/g, "").trim());
+    if (parsed && typeof parsed === "object") {
+      return JSON.stringify(parsed, null, 2);
+    }
+  } catch {
+    // Not a standalone JSON config; continue with URI conversion below.
+  }
+
   const outbounds = [];
   const lines = splitInput(raw);
+  let hasUri = false;
 
   for (const line of lines) {
     if (SUPPORTED_URI.test(line)) {
+      hasUri = true;
       if (/^vless:\/\//i.test(line)) {
         outbounds.push(parseVless(line, outbounds.length));
       }
@@ -252,7 +265,10 @@ export function generateJsonSubscription(input) {
     }
   }
 
-  if (!outbounds.length) throw new Error("Не найдено ни одного поддерживаемого ключа");
+  if (!outbounds.length) {
+    if (hasUri) throw new Error("Найден формат ссылки, который пока не поддерживается для конвертации");
+    throw new Error("Не найдено ни одного поддерживаемого ключа");
+  }
 
-  return JSON.stringify(buildSubscription(outbounds), null, 2);
+  return buildSubscription(outbounds);
 }
