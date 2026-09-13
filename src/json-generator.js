@@ -12,11 +12,7 @@ function splitInput(text) {
 function decodeFragment(value) {
   const raw = String(value || "").replace(/^#/, "");
   if (!raw) return "";
-  try {
-    return decodeURIComponent(raw);
-  } catch {
-    return raw;
-  }
+  try { return decodeURIComponent(raw); } catch { return raw; }
 }
 
 function humanName(value, fallback) {
@@ -99,12 +95,24 @@ function parseVless(uri, index) {
     const host = p.get("host");
     if (host) outbound.streamSettings.wsSettings.headers.Host = host;
   } else if (network === "xhttp") {
-    outbound.streamSettings.xhttpSettings = {
+    const xhttpSettings = {
       mode: p.get("mode") || "auto",
       path: p.get("path") || "/"
     };
+    const extra = p.get("extra");
+    if (extra) {
+      try {
+        const parsedExtra = JSON.parse(extra);
+        if (parsedExtra && typeof parsedExtra === "object" && !Array.isArray(parsedExtra)) {
+          Object.assign(xhttpSettings, parsedExtra);
+        }
+      } catch {
+        // Ignore malformed extra; keep the rest of the VLESS config usable.
+      }
+    }
     const host = p.get("host");
-    if (host) outbound.streamSettings.xhttpSettings.host = host;
+    if (host) xhttpSettings.host = host;
+    outbound.streamSettings.xhttpSettings = xhttpSettings;
   }
 
   return outbound;
@@ -222,7 +230,6 @@ function buildSubscription(outbounds) {
     return config;
   });
 
-  // URI input: auto-balancer first, then manual server configs.
   return [balancerConfig, ...manualConfigs];
 }
 
@@ -230,8 +237,6 @@ export function generateJsonSubscription(input) {
   const raw = String(input || "").trim();
   if (!raw) throw new Error("Ключи не переданы");
 
-  // A ready-made JSON config must stay untouched. Do NOT add a balancer to it.
-  // This also handles pretty-printed multi-line JSON correctly.
   try {
     const parsed = JSON.parse(raw.replace(/```(?:json|text)?/gi, "").replace(/```/g, "").trim());
     if (parsed && typeof parsed === "object") {
@@ -249,7 +254,11 @@ export function generateJsonSubscription(input) {
     if (SUPPORTED_URI.test(line)) {
       hasUri = true;
       if (/^vless:\/\//i.test(line)) {
-        outbounds.push(parseVless(line, outbounds.length));
+        try {
+          outbounds.push(parseVless(line, outbounds.length));
+        } catch (error) {
+          console.error("VLESS parse error", error);
+        }
       }
       continue;
     }
@@ -266,7 +275,7 @@ export function generateJsonSubscription(input) {
   }
 
   if (!outbounds.length) {
-    if (hasUri) throw new Error("Найден формат ссылки, который пока не поддерживается для конвертации");
+    if (hasUri) throw new Error("Не удалось преобразовать ни одной VLESS-ссылки");
     throw new Error("Не найдено ни одного поддерживаемого ключа");
   }
 
