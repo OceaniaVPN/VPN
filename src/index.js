@@ -1,6 +1,7 @@
 import { getConfig } from "./config.js";
 import { handleUpdate } from "./bot/handlers.js";
 import { initDatabase } from "./database/init.js";
+import { generateJsonSubscription } from "./json-generator.js";
 
 const SUBSCRIPTIONS = {
   vip: {
@@ -51,9 +52,27 @@ async function subscriptionResponse(request, plan) {
   const upstream = await fetch(selected.source, { headers: { "User-Agent": "GRN-VPN-Worker/1.0" } });
   if (!upstream.ok) return new Response("Subscription source unavailable", { status: 502 });
   const sourceText = await upstream.text();
-  // Strip Clash/Hiddify metadata from the upstream source. /sub/* is JSON only.
-  const json = sourceText.split(/\r?\n/).filter((line) => !line.trim().startsWith("#")).join("\n").trim();
-  try { JSON.parse(json); } catch { return new Response("Subscription JSON is invalid", { status: 502 }); }
+  // Upstream may be VLESS text with Clash/Hiddify metadata or already JSON.
+  // /sub/* always returns JSON, while /sub/*/metadata returns the metadata separately.
+  const stripped = sourceText
+    .split(/\r?\n/)
+    .filter((line) => !line.trim().startsWith("#"))
+    .join("\n")
+    .trim();
+
+  let json;
+  try {
+    JSON.parse(stripped);
+    json = stripped;
+  } catch {
+    try {
+      json = generateJsonSubscription(stripped);
+      JSON.parse(json);
+    } catch (error) {
+      console.error("Subscription conversion error", error);
+      return new Response("Subscription source could not be converted to JSON", { status: 502 });
+    }
+  }
   const response = new Response(json + "\n", { headers: { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=3600, s-maxage=3600" } });
   await cache.put(cacheKey, response.clone());
   return response;
@@ -88,7 +107,7 @@ export default {
     const subMatch = url.pathname.match(/^\/sub\/(vip|bs)$/i);
     if (subMatch && request.method === "GET") return subscriptionResponse(request, subMatch[1].toLowerCase());
     if (url.pathname === "/telegram/webhook" && request.method === "POST") {
-      try { const update = await request.json(); await initDatabase(cfg); await handleUpdate(update, cfg); return new Response("ok"); }
+      try { const update = await request.json(); await initDatabase(cfg.db); await handleUpdate(cfg, update); return new Response("ok"); }
       catch (error) { console.error("Webhook error", error); return new Response("ok"); }
     }
     return new Response("Not Found", { status: 404 });
