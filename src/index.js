@@ -7,12 +7,12 @@ import { pageHtml, APP_ICONS } from "./page.js";
 const SUBSCRIPTIONS = {
   vip: {
     title: "GRN VPN VIP",
-    source: "https://github.com/lsncococososo-rgb/GRN_VPN/raw/refs/heads/main/Vip.txt",
+    source: "https://raw.githubusercontent.com/lsncococososo-rgb/GRN_VPN/main/Vip.txt",
     apiSource: "https://api.github.com/repos/lsncococososo-rgb/GRN_VPN/contents/Vip.txt?ref=main"
   },
   bs: {
     title: "GRN VPN ОБХОД БС",
-    source: "https://github.com/lsncococososo-rgb/GRN_VPN/raw/refs/heads/main/%D0%9E%D0%B1%D1%85%D0%BE%D0%B4%20%D0%B1%D1%81",
+    source: "https://raw.githubusercontent.com/lsncococososo-rgb/GRN_VPN/main/%D0%9E%D0%B1%D1%85%D0%BE%D0%B4%20%D0%B1%D1%81",
     apiSource: "https://api.github.com/repos/lsncococososo-rgb/GRN_VPN/contents/%D0%9E%D0%B1%D1%85%D0%BE%D0%B4%20%D0%B1%D1%81?ref=main"
   }
 };
@@ -41,23 +41,47 @@ function metadataHeaders(origin) {
 }
 
 async function readSubscriptionSource(selected) {
-  const headers = { "User-Agent": "GRN-VPN-Worker/1.0", Accept: "text/plain,*/*" };
+  const rawHeaders = {
+    "User-Agent": "GRN-VPN-Worker/1.0",
+    Accept: "text/plain, text/*, */*"
+  };
+
   try {
-    const response = await fetch(selected.source, { headers });
-    if (response.ok) return await response.text();
+    const response = await fetch(selected.source, {
+      method: "GET",
+      headers: rawHeaders,
+      redirect: "follow"
+    });
+    if (response.ok) {
+      const text = await response.text();
+      if (text.trim()) return text;
+    }
   } catch (error) {
     console.error("Primary subscription fetch failed", error);
   }
 
   const response = await fetch(selected.apiSource, {
-    headers: { "User-Agent": "GRN-VPN-Worker/1.0", Accept: "application/vnd.github+json" }
+    method: "GET",
+    headers: {
+      "User-Agent": "GRN-VPN-Worker/1.0",
+      Accept: "application/vnd.github+json"
+    },
+    redirect: "follow"
   });
   if (!response.ok) throw new Error(`GitHub source unavailable: ${response.status}`);
+
   const data = await response.json();
-  if (!data || typeof data.content !== "string") throw new Error("GitHub source returned no content");
-  const binary = atob(data.content.replace(/\s/g, ""));
-  const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
-  return new TextDecoder().decode(bytes);
+  if (!data || typeof data.content !== "string") {
+    throw new Error("GitHub source returned no inline content");
+  }
+
+  const encoded = data.content.replace(/\s/g, "");
+  const binary = atob(encoded);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  const text = new TextDecoder().decode(bytes);
+  if (!text.trim()) throw new Error("GitHub source is empty");
+  return text;
 }
 
 function stripMetadata(sourceText) {
@@ -90,31 +114,39 @@ async function subscriptionResponse(request, plan) {
   if (!selected) return new Response("Unknown subscription", { status: 404 });
 
   const cache = caches.default;
-  const cacheKey = new Request(`${new URL(request.url).origin}/sub/${plan}?cache=v5`, { method: "GET" });
-  const cached = await cache.match(cacheKey);
-  if (cached) return cached;
+  const origin = new URL(request.url).origin;
+  const cacheKey = new Request(`${origin}/sub/${plan}?cache=v6`, { method: "GET" });
+
+  try {
+    const cached = await cache.match(cacheKey);
+    if (cached) return cached;
+  } catch (error) {
+    console.error("Subscription cache read failed", error);
+  }
 
   let json;
   try {
     const sourceText = await readSubscriptionSource(selected);
     const stripped = stripMetadata(sourceText);
-    if (!stripped) throw new Error("Subscription source is empty");
+    if (!stripped) throw new Error("Subscription source is empty after metadata removal");
 
     try {
-      JSON.parse(stripped);
-      json = stripped;
+      json = JSON.stringify(JSON.parse(stripped), null, 2);
     } catch {
-      json = JSON.stringify(JSON.parse(generateJsonSubscription(stripped)), null, 2);
+      const generated = generateJsonSubscription(stripped);
+      json = JSON.stringify(JSON.parse(generated), null, 2);
     }
   } catch (error) {
     console.error(`Subscription ${plan} error`, error);
-    return new Response(`Subscription ${plan} unavailable`, {
+    return new Response(`Subscription ${plan} unavailable: ${error?.message || "conversion failed"}`, {
       status: 502,
-      headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" }
+      headers: {
+        "content-type": "text/plain; charset=utf-8",
+        "cache-control": "no-store"
+      }
     });
   }
 
-  const origin = new URL(request.url).origin;
   const response = new Response(json + "\n", {
     headers: {
       "content-type": "application/json; charset=utf-8",
@@ -124,18 +156,27 @@ async function subscriptionResponse(request, plan) {
     }
   });
 
-  try { await cache.put(cacheKey, response.clone()); } catch (error) { console.error("Subscription cache write failed", error); }
+  try {
+    await cache.put(cacheKey, response.clone());
+  } catch (error) {
+    console.error("Subscription cache write failed", error);
+  }
   return response;
 }
 
 async function subscriptionMetadata(request, plan) {
   if (!SUBSCRIPTIONS[plan]) return new Response("Unknown subscription", { status: 404 });
   const cache = caches.default;
-  const cacheKey = new Request(`${new URL(request.url).origin}/sub/${plan}/metadata?cache=v5`, { method: "GET" });
-  const cached = await cache.match(cacheKey);
-  if (cached) return cached;
-
   const origin = new URL(request.url).origin;
+  const cacheKey = new Request(`${origin}/sub/${plan}/metadata?cache=v6`, { method: "GET" });
+
+  try {
+    const cached = await cache.match(cacheKey);
+    if (cached) return cached;
+  } catch (error) {
+    console.error("Metadata cache read failed", error);
+  }
+
   const response = new Response(SUBSCRIPTION_METADATA_BODY + "\n", {
     headers: {
       "content-type": "text/plain; charset=utf-8",
@@ -143,7 +184,11 @@ async function subscriptionMetadata(request, plan) {
       ...metadataHeaders(origin)
     }
   });
-  try { await cache.put(cacheKey, response.clone()); } catch (error) { console.error("Metadata cache write failed", error); }
+  try {
+    await cache.put(cacheKey, response.clone());
+  } catch (error) {
+    console.error("Metadata cache write failed", error);
+  }
   return response;
 }
 
