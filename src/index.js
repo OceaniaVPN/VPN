@@ -17,13 +17,31 @@ const SUBSCRIPTIONS = {
   }
 };
 
-const SUBSCRIPTION_METADATA_BODY = [
-  "#profile-title: GRN_VPN",
-  "#profile-update-interval: 2",
-  "#support-url: https://t.me/info_Grina",
-  "#announce: VPN не гарантирует работа способность владелец - @apruxx",
-  "#subscription-userinfo: upload=0; download=0; total=107374292918240; expire=0"
-].join("\n");
+const SUBSCRIPTION_METADATA = {
+  "profile-title": "GRN_VPN",
+  "profile-update-interval": "2",
+  "support-url": "https://t.me/info_Grina",
+  "announce": "VPN не гарантирует работа способность владелец - @apruxx",
+  "subscription-userinfo": "upload=0; download=0; total=107374292918240; expire=0"
+};
+
+const SUBSCRIPTION_METADATA_BODY = Object.entries(SUBSCRIPTION_METADATA)
+  .map(([key, value]) => `#${key}: ${value}`)
+  .join("\n");
+
+function subscriptionHeaders(origin, plan, contentType = "application/json; charset=utf-8") {
+  return {
+    "content-type": contentType,
+    "cache-control": "public, max-age=3600, s-maxage=3600",
+    "content-disposition": `inline; filename="GRN_VPN_${plan}.json"`,
+    "profile-title": SUBSCRIPTION_METADATA["profile-title"],
+    "profile-update-interval": SUBSCRIPTION_METADATA["profile-update-interval"],
+    "support-url": SUBSCRIPTION_METADATA["support-url"],
+    "announce": SUBSCRIPTION_METADATA.announce,
+    "subscription-userinfo": SUBSCRIPTION_METADATA["subscription-userinfo"],
+    "profile-web-page-url": `${origin}/connect?plan=${plan}`
+  };
+}
 
 async function readSubscriptionSource(selected) {
   try {
@@ -93,7 +111,7 @@ async function subscriptionResponse(request, plan, ctx) {
 
   const cache = caches.default;
   const origin = new URL(request.url).origin;
-  const cacheKey = new Request(`${origin}/sub/${plan}?cache=v8`, { method: "GET" });
+  const cacheKey = new Request(`${origin}/sub/${plan}?cache=v9`, { method: "GET" });
 
   try {
     const cached = await cache.match(cacheKey);
@@ -121,15 +139,9 @@ async function subscriptionResponse(request, plan, ctx) {
     if (!json || json === "undefined") throw new Error("JSON generation returned empty result");
 
     const response = new Response(json + "\n", {
-      headers: {
-        "content-type": "application/json; charset=utf-8",
-        "cache-control": "public, max-age=3600, s-maxage=3600",
-        "content-disposition": `inline; filename="GRN_VPN_${plan}.json"`
-      }
+      headers: subscriptionHeaders(origin, plan)
     });
 
-    // Do not make the client wait for Cloudflare Cache API storage.
-    // A slow cache.put() must never turn an otherwise valid JSON response into a gateway error.
     try {
       const cacheWrite = cache.put(cacheKey, response.clone());
       if (ctx?.waitUntil) ctx.waitUntil(cacheWrite.catch(error => console.error("Subscription cache write failed", error)));
@@ -156,7 +168,7 @@ async function subscriptionMetadata(request, plan, ctx) {
 
   const cache = caches.default;
   const origin = new URL(request.url).origin;
-  const cacheKey = new Request(`${origin}/sub/${plan}/metadata?cache=v8`, { method: "GET" });
+  const cacheKey = new Request(`${origin}/sub/${plan}/metadata?cache=v9`, { method: "GET" });
 
   try {
     const cached = await cache.match(cacheKey);
@@ -167,8 +179,7 @@ async function subscriptionMetadata(request, plan, ctx) {
 
   const response = new Response(SUBSCRIPTION_METADATA_BODY + "\n", {
     headers: {
-      "content-type": "text/plain; charset=utf-8",
-      "cache-control": "public, max-age=3600, s-maxage=3600",
+      ...subscriptionHeaders(origin, plan, "text/plain; charset=utf-8"),
       "content-disposition": `inline; filename="GRN_VPN_${plan}_metadata.txt"`
     }
   });
