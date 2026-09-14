@@ -17,39 +17,21 @@ const SUBSCRIPTIONS = {
   }
 };
 
-const SUBSCRIPTION_METADATA = {
-  "profile-title": "GRN_VPN",
-  "profile-update-interval": "2",
-  "support-url": "https://t.me/info_Grina",
-  "announce": "VPN не гарантирует работа способность владелец - @apruxx",
-  "subscription-userinfo": "upload=0; download=0; total=107374292918240; expire=0"
-};
-
-const SUBSCRIPTION_METADATA_BODY = Object.entries(SUBSCRIPTION_METADATA)
-  .map(([key, value]) => `#${key}: ${value}`)
-  .join("\n");
-
-function metadataHeaders(origin) {
-  return {
-    "profile-title": SUBSCRIPTION_METADATA["profile-title"],
-    "profile-update-interval": SUBSCRIPTION_METADATA["profile-update-interval"],
-    "support-url": SUBSCRIPTION_METADATA["support-url"],
-    "announce": SUBSCRIPTION_METADATA.announce,
-    "subscription-userinfo": SUBSCRIPTION_METADATA["subscription-userinfo"],
-    "profile-web-page-url": `${origin}/connect`
-  };
-}
+const SUBSCRIPTION_METADATA_BODY = [
+  "#profile-title: GRN_VPN",
+  "#profile-update-interval: 2",
+  "#support-url: https://t.me/info_Grina",
+  "#announce: VPN не гарантирует работа способность владелец - @apruxx",
+  "#subscription-userinfo: upload=0; download=0; total=107374292918240; expire=0"
+].join("\n");
 
 async function readSubscriptionSource(selected) {
-  const rawHeaders = {
-    "User-Agent": "GRN-VPN-Worker/1.0",
-    Accept: "text/plain, text/*, */*"
-  };
-
   try {
     const response = await fetch(selected.source, {
-      method: "GET",
-      headers: rawHeaders,
+      headers: {
+        "User-Agent": "GRN-VPN-Worker/1.0",
+        Accept: "text/plain, text/*, */*"
+      },
       redirect: "follow"
     });
     if (response.ok) {
@@ -61,7 +43,6 @@ async function readSubscriptionSource(selected) {
   }
 
   const response = await fetch(selected.apiSource, {
-    method: "GET",
     headers: {
       "User-Agent": "GRN-VPN-Worker/1.0",
       Accept: "application/vnd.github+json"
@@ -71,12 +52,9 @@ async function readSubscriptionSource(selected) {
   if (!response.ok) throw new Error(`GitHub source unavailable: ${response.status}`);
 
   const data = await response.json();
-  if (!data || typeof data.content !== "string") {
-    throw new Error("GitHub source returned no inline content");
-  }
+  if (!data || typeof data.content !== "string") throw new Error("GitHub source returned no content");
 
-  const encoded = data.content.replace(/\s/g, "");
-  const binary = atob(encoded);
+  const binary = atob(data.content.replace(/\s/g, ""));
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   const text = new TextDecoder().decode(bytes);
@@ -115,7 +93,7 @@ async function subscriptionResponse(request, plan) {
 
   const cache = caches.default;
   const origin = new URL(request.url).origin;
-  const cacheKey = new Request(`${origin}/sub/${plan}?cache=v6`, { method: "GET" });
+  const cacheKey = new Request(`${origin}/sub/${plan}?cache=v7`, { method: "GET" });
 
   try {
     const cached = await cache.match(cacheKey);
@@ -124,18 +102,38 @@ async function subscriptionResponse(request, plan) {
     console.error("Subscription cache read failed", error);
   }
 
-  let json;
   try {
     const sourceText = await readSubscriptionSource(selected);
     const stripped = stripMetadata(sourceText);
-    if (!stripped) throw new Error("Subscription source is empty after metadata removal");
+    if (!stripped) throw new Error("Subscription source is empty");
 
+    let json;
     try {
-      json = JSON.stringify(JSON.parse(stripped), null, 2);
+      const parsed = JSON.parse(stripped);
+      json = JSON.stringify(parsed, null, 2);
     } catch {
       const generated = generateJsonSubscription(stripped);
-      json = JSON.stringify(JSON.parse(generated), null, 2);
+      // generateJsonSubscription returns an array for URI input and a JSON string
+      // for standalone JSON input. Never JSON.parse the array again.
+      json = typeof generated === "string"
+        ? JSON.stringify(JSON.parse(generated), null, 2)
+        : JSON.stringify(generated, null, 2);
     }
+
+    const response = new Response(json + "\n", {
+      headers: {
+        "content-type": "application/json; charset=utf-8",
+        "cache-control": "public, max-age=3600, s-maxage=3600",
+        "content-disposition": `inline; filename="GRN_VPN_${plan}.json"`
+      }
+    });
+
+    try {
+      await cache.put(cacheKey, response.clone());
+    } catch (error) {
+      console.error("Subscription cache write failed", error);
+    }
+    return response;
   } catch (error) {
     console.error(`Subscription ${plan} error`, error);
     return new Response(`Subscription ${plan} unavailable: ${error?.message || "conversion failed"}`, {
@@ -146,29 +144,14 @@ async function subscriptionResponse(request, plan) {
       }
     });
   }
-
-  const response = new Response(json + "\n", {
-    headers: {
-      "content-type": "application/json; charset=utf-8",
-      "cache-control": "public, max-age=3600, s-maxage=3600",
-      "content-disposition": `inline; filename="GRN_VPN_${plan}.json"`,
-      ...metadataHeaders(origin)
-    }
-  });
-
-  try {
-    await cache.put(cacheKey, response.clone());
-  } catch (error) {
-    console.error("Subscription cache write failed", error);
-  }
-  return response;
 }
 
 async function subscriptionMetadata(request, plan) {
   if (!SUBSCRIPTIONS[plan]) return new Response("Unknown subscription", { status: 404 });
+
   const cache = caches.default;
   const origin = new URL(request.url).origin;
-  const cacheKey = new Request(`${origin}/sub/${plan}/metadata?cache=v6`, { method: "GET" });
+  const cacheKey = new Request(`${origin}/sub/${plan}/metadata?cache=v7`, { method: "GET" });
 
   try {
     const cached = await cache.match(cacheKey);
@@ -181,9 +164,10 @@ async function subscriptionMetadata(request, plan) {
     headers: {
       "content-type": "text/plain; charset=utf-8",
       "cache-control": "public, max-age=3600, s-maxage=3600",
-      ...metadataHeaders(origin)
+      "content-disposition": `inline; filename="GRN_VPN_${plan}_metadata.txt"`
     }
   });
+
   try {
     await cache.put(cacheKey, response.clone());
   } catch (error) {
