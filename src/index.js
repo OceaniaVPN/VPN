@@ -87,13 +87,13 @@ async function iconResponse(name) {
   }
 }
 
-async function subscriptionResponse(request, plan) {
+async function subscriptionResponse(request, plan, ctx) {
   const selected = SUBSCRIPTIONS[plan];
   if (!selected) return new Response("Unknown subscription", { status: 404 });
 
   const cache = caches.default;
   const origin = new URL(request.url).origin;
-  const cacheKey = new Request(`${origin}/sub/${plan}?cache=v7`, { method: "GET" });
+  const cacheKey = new Request(`${origin}/sub/${plan}?cache=v8`, { method: "GET" });
 
   try {
     const cached = await cache.match(cacheKey);
@@ -113,12 +113,12 @@ async function subscriptionResponse(request, plan) {
       json = JSON.stringify(parsed, null, 2);
     } catch {
       const generated = generateJsonSubscription(stripped);
-      // generateJsonSubscription returns an array for URI input and a JSON string
-      // for standalone JSON input. Never JSON.parse the array again.
       json = typeof generated === "string"
         ? JSON.stringify(JSON.parse(generated), null, 2)
         : JSON.stringify(generated, null, 2);
     }
+
+    if (!json || json === "undefined") throw new Error("JSON generation returned empty result");
 
     const response = new Response(json + "\n", {
       headers: {
@@ -128,11 +128,16 @@ async function subscriptionResponse(request, plan) {
       }
     });
 
+    // Do not make the client wait for Cloudflare Cache API storage.
+    // A slow cache.put() must never turn an otherwise valid JSON response into a gateway error.
     try {
-      await cache.put(cacheKey, response.clone());
+      const cacheWrite = cache.put(cacheKey, response.clone());
+      if (ctx?.waitUntil) ctx.waitUntil(cacheWrite.catch(error => console.error("Subscription cache write failed", error)));
+      else cacheWrite.catch(error => console.error("Subscription cache write failed", error));
     } catch (error) {
-      console.error("Subscription cache write failed", error);
+      console.error("Subscription cache write scheduling failed", error);
     }
+
     return response;
   } catch (error) {
     console.error(`Subscription ${plan} error`, error);
@@ -146,12 +151,12 @@ async function subscriptionResponse(request, plan) {
   }
 }
 
-async function subscriptionMetadata(request, plan) {
+async function subscriptionMetadata(request, plan, ctx) {
   if (!SUBSCRIPTIONS[plan]) return new Response("Unknown subscription", { status: 404 });
 
   const cache = caches.default;
   const origin = new URL(request.url).origin;
-  const cacheKey = new Request(`${origin}/sub/${plan}/metadata?cache=v7`, { method: "GET" });
+  const cacheKey = new Request(`${origin}/sub/${plan}/metadata?cache=v8`, { method: "GET" });
 
   try {
     const cached = await cache.match(cacheKey);
@@ -169,15 +174,18 @@ async function subscriptionMetadata(request, plan) {
   });
 
   try {
-    await cache.put(cacheKey, response.clone());
+    const cacheWrite = cache.put(cacheKey, response.clone());
+    if (ctx?.waitUntil) ctx.waitUntil(cacheWrite.catch(error => console.error("Metadata cache write failed", error)));
+    else cacheWrite.catch(error => console.error("Metadata cache write failed", error));
   } catch (error) {
-    console.error("Metadata cache write failed", error);
+    console.error("Metadata cache write scheduling failed", error);
   }
+
   return response;
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const cfg = getConfig(env);
     const url = new URL(request.url);
 
@@ -196,10 +204,10 @@ export default {
     if (iconMatch && request.method === "GET") return iconResponse(iconMatch[1].toLowerCase());
 
     const metadataMatch = url.pathname.match(/^\/sub\/(vip|bs)\/(metadata|flags)$/i);
-    if (metadataMatch && request.method === "GET") return subscriptionMetadata(request, metadataMatch[1].toLowerCase());
+    if (metadataMatch && request.method === "GET") return subscriptionMetadata(request, metadataMatch[1].toLowerCase(), ctx);
 
     const subMatch = url.pathname.match(/^\/sub\/(vip|bs)$/i);
-    if (subMatch && request.method === "GET") return subscriptionResponse(request, subMatch[1].toLowerCase());
+    if (subMatch && request.method === "GET") return subscriptionResponse(request, subMatch[1].toLowerCase(), ctx);
 
     if (url.pathname === "/telegram/webhook" && request.method === "POST") {
       try {
